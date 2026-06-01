@@ -43,3 +43,10 @@ if not os.path.exists(DB_FILE):
     st.stop()
 
 # 대시보드 구조 및 5개 시각화 차트 빌드... (차트별 individual 렌더링)
+st.title("📊 한국 문해력 저하 원인 분석 대시보드")
+st.write("DB 연결 성공!")
+
+conn = sqlite3.connect(DB_FILE)
+df = pd.read_sql("SELECT * FROM 기초학력미달률_전처리 WHERE year IS NOT NULL LIMIT 5", conn)
+conn.close()
+st.dataframe(df)

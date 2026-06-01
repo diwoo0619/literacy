@@ -8,17 +8,33 @@ import matplotlib.patches as mpatches
 import streamlit as st
 from scipy import stats
 
-# ── 한글 폰트 설정 ──────────────────────────────────────────────
-try:
+# ── 한글 폰트 설정 (Streamlit Cloud 환경 포함) ────────────────────
+import subprocess, shutil
+def setup_korean_font():
+    # 1) 시스템에 나눔폰트 있는지 확인
     font_list = [f for f in fm.findSystemFonts()
-                 if 'Nanum' in f or 'malgun' in f.lower() or 'apple' in f.lower()]
+                 if 'Nanum' in f or 'malgun' in f.lower()]
     if font_list:
         plt.rcParams['font.family'] = fm.FontProperties(fname=font_list[0]).get_name()
-    else:
-        plt.rcParams['font.family'] = 'DejaVu Sans'
+        plt.rcParams['axes.unicode_minus'] = False
+        return
+    # 2) apt로 나눔폰트 설치 시도 (Streamlit Cloud Linux 환경)
+    try:
+        subprocess.run(['apt-get', 'install', '-y', 'fonts-nanum'],
+                       capture_output=True, check=True)
+        fm._load_fontmanager(try_read_cache=False)
+        font_list = [f for f in fm.findSystemFonts() if 'Nanum' in f]
+        if font_list:
+            plt.rcParams['font.family'] = fm.FontProperties(fname=font_list[0]).get_name()
+            plt.rcParams['axes.unicode_minus'] = False
+            return
+    except Exception:
+        pass
+    # 3) 그래도 없으면 DejaVu 사용
+    plt.rcParams['font.family'] = 'DejaVu Sans'
     plt.rcParams['axes.unicode_minus'] = False
-except Exception:
-    plt.rcParams['axes.unicode_minus'] = False
+
+setup_korean_font()
 
 # ── 색상 상수 ────────────────────────────────────────────────────
 BLUE      = '#1E5FAA'

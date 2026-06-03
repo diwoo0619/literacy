@@ -75,7 +75,8 @@ chart_options = {
     "차트 6 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
     "차트 7 — 디지털 네이티브 역설": "chart8",
     "차트 8 — PIAAC 학력통제 편상관": "chart9",
-    "차트 9 — 다중회귀분석: 영향력 비교": "chart10",
+    "차트 9 — OECD 국가 비교": "chart_oecd",
+    "차트 10 — 세대별 문해력 분포 (박스플롯)": "chart_box",
 }
 selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
 mode = chart_options[selected]
@@ -91,40 +92,46 @@ def show_sql(sql):
 def render_chart1():
     st.subheader("📈 차트 1 — 코로나 전후 기초학력 미달률 추이 (중학교)")
     sql = """
-        SELECT year, subject, fail_rate
+        SELECT year, school_type, subject, fail_rate
         FROM 기초학력미달률_전처리
-        WHERE school_type='중학교' AND year IS NOT NULL
-        ORDER BY year, subject
+        WHERE year IS NOT NULL
+        ORDER BY year, school_type, subject
     """
     df = pd.read_sql(sql, conn)
-    fig, ax = plt.subplots(figsize=(11, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     colors = {'국어': BLUE, '수학': AMBER, '영어': TEAL}
-    for subj, grp in df.groupby('subject'):
-        ax.plot(grp['year'], grp['fail_rate'], marker='o',
-                label=subj, color=colors.get(subj, GRAY), linewidth=2.2, markersize=6)
-        for _, row in grp.iterrows():
-            ax.annotate(f"{row['fail_rate']:.1f}",
-                        (row['year'], row['fail_rate']),
-                        textcoords="offset points", xytext=(0, 8),
-                        ha='center', fontsize=8, color=colors.get(subj, GRAY))
-    ax.axvspan(2019.5, 2024.5, alpha=0.10, color='red', label='코로나 이후(2020~)')
-    ax.axvline(2019.5, color='red', linestyle='--', linewidth=1, alpha=0.5)
-    ax.text(2019.7, ax.get_ylim()[1] * 0.95, '코로나 이후 →', color='red', fontsize=9, alpha=0.7)
-    ax.set_xlabel('연도')
-    ax.set_ylabel('기초학력 미달률 (%)')
-    ax.set_title('중학교 과목별 기초학력 미달률 추이 (2015~2024)', fontsize=13, fontweight='bold')
-    ax.legend()
-    ax.grid(axis='y', alpha=0.3)
-    ax.set_xticks(sorted(df['year'].unique()))
+    school_types = ['중학교', '고등학교']
+
+    for ax, school in zip(axes, school_types):
+        df_s = df[df['school_type'] == school]
+        for subj, grp in df_s.groupby('subject'):
+            ax.plot(grp['year'], grp['fail_rate'], marker='o',
+                    label=subj, color=colors.get(subj, GRAY), linewidth=2.2, markersize=5)
+            for _, row in grp.iterrows():
+                ax.annotate(f"{row['fail_rate']:.1f}",
+                            (row['year'], row['fail_rate']),
+                            textcoords="offset points", xytext=(0, 7),
+                            ha='center', fontsize=7, color=colors.get(subj, GRAY))
+        ax.axvspan(2019.5, 2024.5, alpha=0.10, color='red', label='코로나 이후(2020~)')
+        ax.axvline(2019.5, color='red', linestyle='--', linewidth=1, alpha=0.5)
+        ax.set_xlabel('연도')
+        ax.set_ylabel('기초학력 미달률 (%)')
+        ax.set_title(f'{school} 과목별 기초학력 미달률 추이', fontsize=11, fontweight='bold')
+        ax.legend(fontsize=9)
+        ax.grid(axis='y', alpha=0.3)
+        ax.set_xticks(sorted(df['year'].unique()))
+        ax.tick_params(axis='x', rotation=45)
+
+    plt.suptitle('기초학력 미달률 추이 (2015~2024)', fontsize=13, fontweight='bold')
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
     show_sql(sql)
     st.info("""
 💡 **인사이트**
-- 중학교 국어 미달률이 2019년 4.1%에서 2022년 11.3%로 약 3배 급등했으며, 코로나 이후에도 10% 수준을 유지하고 있습니다.
-- 수학은 코로나 이전부터 높은 미달률을 보인 반면, 국어는 코로나를 기점으로 급격히 상승해 현재 수학과 유사한 수준에 도달했습니다.
-- 국어 미달률의 이례적 급등은 단순 학습 공백이 아닌 대면 소통 단절에 따른 언어 발달 훼손 가능성을 시사합니다.
+- 중학교 국어 미달률이 2019년 4.1%에서 2022년 11.3%로 약 3배 급등했으며, 고등학교도 4.0%→8.0%로 2배 상승했습니다.
+- 수학은 코로나 이전부터 미달률이 높았던 반면, 국어는 코로나를 기점으로 이례적으로 급등해 수학과 유사한 수준에 도달했습니다.
+- 중학교가 고등학교보다 국어 미달률 상승폭이 더 크며, 이는 언어 발달 핵심 시기인 중학생 시기의 소통 단절 효과가 더 크게 작용했음을 시사합니다.
 """)
 
 
@@ -134,48 +141,64 @@ def render_chart1():
 def render_chart2():
     st.subheader("📊 차트 2 — 코로나 전후 중학교 국어 미달률 비교 (t-test)")
     sql = """
-        SELECT corona_period, fail_rate
+        SELECT school_type, corona_period, fail_rate
         FROM 기초학력미달률_전처리
-        WHERE school_type='중학교' AND subject='국어' AND year IS NOT NULL
+        WHERE subject='국어' AND year IS NOT NULL
     """
     df = pd.read_sql(sql, conn)
-    pre  = df[df['corona_period'] == 0]['fail_rate'].values
-    post = df[df['corona_period'] == 1]['fail_rate'].values
-    t_stat, p_val = stats.ttest_ind(pre, post)
-    pre_mean, post_mean = pre.mean(), post.mean()
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    bars = ax.bar(
-        ['코로나 이전\n(2015~2019)', '코로나 이후\n(2020~2024)'],
-        [pre_mean, post_mean],
-        color=[BLUE, CORAL], width=0.5, edgecolor='white'
-    )
-    for bar, val in zip(bars, [pre_mean, post_mean]):
-        ax.text(bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + 0.15,
-                f'{val:.2f}%', ha='center', fontsize=13, fontweight='bold')
-    significance = "통계적으로 유의 (p < 0.05)" if p_val < 0.05 else "유의하지 않음"
-    ax.set_title('중학교 국어 기초학력 미달률 — 코로나 전후 비교', fontsize=13, fontweight='bold')
-    ax.set_ylabel('평균 미달률 (%)')
-    ax.set_ylim(0, max(pre_mean, post_mean) * 1.3)
-    ax.grid(axis='y', alpha=0.3)
-    fig.text(0.5, -0.02,
-             f't = {t_stat:.3f},  p = {p_val:.4f}  |  {significance}',
-             ha='center', fontsize=11,
-             color='#993C1D' if p_val < 0.05 else GRAY)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    school_types = ['중학교', '고등학교']
+
+    for ax, school in zip(axes, school_types):
+        df_s   = df[df['school_type'] == school]
+        pre    = df_s[df_s['corona_period'] == 0]['fail_rate'].values
+        post   = df_s[df_s['corona_period'] == 1]['fail_rate'].values
+        t_stat, p_val = stats.ttest_ind(pre, post)
+        pre_mean  = pre.mean()
+        post_mean = post.mean()
+
+        bars = ax.bar(
+            ['코로나 이전\n(2015~2019)', '코로나 이후\n(2020~2024)'],
+            [pre_mean, post_mean],
+            color=[BLUE, CORAL], width=0.5, edgecolor='white'
+        )
+        for bar, val in zip(bars, [pre_mean, post_mean]):
+            ax.text(bar.get_x() + bar.get_width()/2,
+                    bar.get_height() + 0.1,
+                    f'{val:.2f}%', ha='center', fontsize=12, fontweight='bold')
+        sig = "유의 (p<0.05)" if p_val < 0.05 else "비유의"
+        ax.set_title(f'{school} 국어 미달률 — 코로나 전후', fontsize=11, fontweight='bold')
+        ax.set_ylabel('평균 미달률 (%)')
+        ax.set_ylim(0, max(pre_mean, post_mean) * 1.35)
+        ax.grid(axis='y', alpha=0.3)
+        ax.text(0.5, -0.15,
+                f't={t_stat:.3f}, p={p_val:.4f} | {sig}',
+                transform=ax.transAxes, ha='center', fontsize=9,
+                color='#993C1D' if p_val < 0.05 else GRAY)
+
+    plt.suptitle('국어 기초학력 미달률 — 코로나 전후 비교 (t-test)', fontsize=13, fontweight='bold')
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("코로나 이전 평균", f"{pre_mean:.2f}%")
-    col2.metric("코로나 이후 평균", f"{post_mean:.2f}%", f"+{post_mean - pre_mean:.2f}%p")
-    col3.metric("p값", f"{p_val:.4f}", "유의" if p_val < 0.05 else "비유의")
+    # 두 학교급 메트릭
+    st.markdown("**학교급별 상세**")
+    cols = st.columns(4)
+    for i, school in enumerate(school_types):
+        df_s = df[df['school_type'] == school]
+        pre  = df_s[df_s['corona_period'] == 0]['fail_rate'].values
+        post = df_s[df_s['corona_period'] == 1]['fail_rate'].values
+        _, p = stats.ttest_ind(pre, post)
+        cols[i*2].metric(f"{school} 이전", f"{pre.mean():.2f}%")
+        cols[i*2+1].metric(f"{school} 이후", f"{post.mean():.2f}%",
+                           f"+{post.mean()-pre.mean():.2f}%p")
     show_sql(sql)
     st.info("""
 💡 **인사이트**
-- 코로나 이전(2015~2019) 평균 3.14%에서 코로나 이후(2020~2024) 평균 8.58%로 약 2.7배 증가했으며, 이 차이는 통계적으로 유의합니다.
-- 5 vs 5 균형 비교로 검정력을 확보했으며, 코로나 이후에도 미달률이 회복되지 않고 있다는 점이 핵심입니다.
+- 중학교 국어: 코로나 이전 3.14% → 이후 8.58%로 약 2.7배 증가 (통계적으로 유의).
+- 고등학교 국어: 코로나 이전 3.98% → 이후 8.36%로 약 2.1배 증가 (통계적으로 유의).
+- 두 학교급 모두 코로나 이후 국어 미달률이 통계적으로 유의하게 상승했으며, 코로나 이후에도 회복되지 않고 있습니다.
 - 상관관계이며 코로나가 직접적 원인임을 증명하는 것은 아니나, 언어 발달 환경의 훼손이 지속되고 있다는 신호로 해석됩니다.
 """)
 
@@ -927,6 +950,185 @@ def render_chart10():
 복합 요인이 반영된 결과일 수 있습니다. 인과관계가 아닌 상관관계임을 명시합니다.
 """)
 
+def render_chart_oecd():
+    st.subheader("🌏 차트 9 — OECD 국가별 성인 문해력 평균 점수 비교 (PIAAC 2023)")
+    st.markdown("""
+    **왜 한국 문해력이 문제인가?** OECD 31개국 비교에서 한국의 위치를 확인합니다.
+    """)
+
+    sql = "SELECT * FROM OECD_문해력_국가비교 ORDER BY rank"
+    df_oecd = pd.read_sql(sql, conn)
+
+    oecd_avg = 260.0  # OECD 평균
+
+    # 색상 설정
+    bar_colors = []
+    for _, row in df_oecd.iterrows():
+        if row['is_korea'] == 1:
+            bar_colors.append(CORAL)
+        elif row['mean_score'] >= oecd_avg:
+            bar_colors.append(BLUE)
+        else:
+            bar_colors.append(LIGHT_BLUE)
+
+    fig, ax = plt.subplots(figsize=(12, 10))
+    y_pos = np.arange(len(df_oecd))
+
+    bars = ax.barh(y_pos, df_oecd['mean_score'][::-1].values,
+                   color=bar_colors[::-1], edgecolor='white', height=0.7)
+
+    # 점수 레이블
+    for i, (bar, row) in enumerate(zip(bars, df_oecd.iloc[::-1].itertuples())):
+        color  = CORAL if row.is_korea == 1 else 'white'
+        weight = 'bold' if row.is_korea == 1 else 'normal'
+        ax.text(bar.get_width() - 1.5, bar.get_y() + bar.get_height()/2,
+                f'{row.mean_score:.0f}',
+                va='center', ha='right', fontsize=8,
+                color=color, fontweight=weight)
+
+    # OECD 평균선
+    ax.axvline(oecd_avg, color=GRAY, linestyle='--', linewidth=1.5, alpha=0.8)
+    ax.text(oecd_avg + 0.5, len(df_oecd) - 0.5,
+            f'OECD 평균\n{oecd_avg:.0f}점',
+            color=GRAY, fontsize=9, va='top')
+
+    # y축 국가명
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(df_oecd['country'].iloc[::-1].values, fontsize=9)
+
+    # 한국 강조
+    korea_idx = df_oecd[df_oecd['is_korea']==1].index[0]
+    korea_y   = len(df_oecd) - 1 - korea_idx
+    korea_score = df_oecd[df_oecd['is_korea']==1]['mean_score'].values[0]
+    korea_rank  = df_oecd[df_oecd['is_korea']==1]['rank'].values[0]
+    ax.get_yticklabels()[korea_y].set_color(CORAL)
+    ax.get_yticklabels()[korea_y].set_fontweight('bold')
+
+    ax.set_xlabel('평균 문해력 점수')
+    ax.set_xlim(200, 315)
+    ax.set_title('OECD PIAAC 2023 성인 문해력 국가별 순위',
+                 fontsize=13, fontweight='bold')
+    ax.grid(axis='x', alpha=0.3)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("한국 순위",     f"{korea_rank}위 / 31개국")
+    col2.metric("한국 평균점수", f"{korea_score:.0f}점")
+    col3.metric("OECD 평균 대비", f"{korea_score - oecd_avg:.1f}점")
+
+    show_sql(sql)
+    st.info("""
+💡 **인사이트**
+- 한국의 성인 문해력 평균(249점)은 OECD 평균(260점)보다 11점 낮으며, 31개국 중 22위에 위치합니다.
+- 같은 동아시아 문화권인 일본(2위, 289점)과 40점 차이로, 문해력 교육 환경의 차이가 큽니다.
+- OECD 평균 이상인 국가(파란색)와 이하인 국가(연한 파란색)를 구분했으며, 한국(빨간색)은 중하위권에 위치합니다.
+""")
+
+
+# ════════════════════════════════════════════════
+# 차트 BOX — 세대별 문해력 분포 (박스플롯)
+# ════════════════════════════════════════════════
+def render_chart_box():
+    st.subheader("📊 차트 10 — 세대별 문해력 점수 분포 (PIAAC 2023 한국)")
+    st.markdown("""
+    PIAAC 개인 단위 데이터(n=6,198)로 세대별 문해력 점수 분포를 확인합니다.
+    평균값 차이뿐 아니라 **분포의 형태와 격차**를 함께 볼 수 있습니다.
+    """)
+
+    sql = """
+        SELECT 연령대, 연령대_코드,
+               CAST(문해력_평균점수 AS REAL) AS 문해력
+        FROM PIAAC_2023_한국
+        WHERE 문해력_평균점수 IS NOT NULL
+        ORDER BY 연령대_코드
+    """
+    df_p = pd.read_sql(sql, conn)
+    df_p['문해력'] = pd.to_numeric(df_p['문해력'], errors='coerce')
+    df_p = df_p.dropna(subset=['문해력'])
+
+    age_order  = ['16~25세', '26~35세', '36~45세', '46~55세', '56~65세']
+    age_colors = [BLUE, LIGHT_BLUE, TEAL, AMBER, CORAL]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # ── 왼쪽: 박스플롯 ───────────────────────────────────────
+    ax = axes[0]
+    bp_data = [df_p[df_p['연령대']==age]['문해력'].values
+               for age in age_order if age in df_p['연령대'].values]
+    valid_ages   = [age for age in age_order if age in df_p['연령대'].values]
+    valid_colors = [age_colors[age_order.index(age)] for age in valid_ages]
+
+    bp = ax.boxplot(bp_data, labels=valid_ages, patch_artist=True,
+                    notch=False, medianprops=dict(color='white', linewidth=2.5))
+    for patch, color in zip(bp['boxes'], valid_colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.8)
+    for whisker in bp['whiskers']:
+        whisker.set_color(GRAY)
+        whisker.set_alpha(0.6)
+    for cap in bp['caps']:
+        cap.set_color(GRAY)
+        cap.set_alpha(0.6)
+
+    # 평균값 표시
+    for i, (age, color) in enumerate(zip(valid_ages, valid_colors), 1):
+        mean_val = df_p[df_p['연령대']==age]['문해력'].mean()
+        ax.text(i, mean_val + 4, f'{mean_val:.0f}',
+                ha='center', fontsize=9, fontweight='bold', color=color)
+
+    ax.set_title('연령대별 문해력 점수 분포\n(PIAAC 2023 한국)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('문해력 평균 점수')
+    ax.set_ylim(0, 430)
+    ax.tick_params(axis='x', rotation=15)
+    ax.grid(axis='y', alpha=0.3)
+
+    # ── 오른쪽: 바이올린 플롯 ────────────────────────────────
+    ax2 = axes[1]
+    parts = ax2.violinplot(bp_data, positions=range(1, len(valid_ages)+1),
+                           showmeans=True, showmedians=False)
+    for i, (pc, color) in enumerate(zip(parts['bodies'], valid_colors)):
+        pc.set_facecolor(color)
+        pc.set_alpha(0.7)
+    parts['cmeans'].set_color('white')
+    parts['cmeans'].set_linewidth(2)
+    parts['cbars'].set_color(GRAY)
+    parts['cmins'].set_color(GRAY)
+    parts['cmaxes'].set_color(GRAY)
+
+    ax2.set_xticks(range(1, len(valid_ages)+1))
+    ax2.set_xticklabels(valid_ages, rotation=15)
+    ax2.set_title('연령대별 문해력 점수 밀도 분포\n(바이올린 플롯)', fontsize=11, fontweight='bold')
+    ax2.set_ylabel('문해력 평균 점수')
+    ax2.set_ylim(0, 430)
+    ax2.grid(axis='y', alpha=0.3)
+
+    plt.suptitle('세대별 문해력 점수 분포 비교 (PIAAC 2023 한국, n=6,198)',
+                 fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
+
+    # 연령대별 요약 테이블
+    st.markdown("**연령대별 문해력 점수 요약**")
+    summary = df_p.groupby('연령대')['문해력'].agg(
+        평균=lambda x: round(x.mean(), 1),
+        중앙값=lambda x: round(x.median(), 1),
+        표준편차=lambda x: round(x.std(), 1),
+        n='count'
+    ).reindex(valid_ages)
+    st.dataframe(summary, use_container_width=True)
+
+    show_sql(sql)
+    st.info("""
+💡 **인사이트**
+- 16~25세(평균 277점)에서 56~65세(평균 213점)로 갈수록 문해력이 뚜렷하게 감소합니다.
+- 바이올린 플롯에서 젊은 층은 분포가 좁고 높은 편에 집중되는 반면, 고령층은 분포가 넓고 낮은 점수에 퍼져 있습니다.
+- 세대 간 문해력 격차는 단순 평균 차이(64점)뿐 아니라 분포 형태에서도 뚜렷하게 나타납니다.
+""")
+    st.warning("⚠️ 연령 효과는 세대 차이(교육 환경, 디지털 노출 등) 복합 요인이 반영된 결과로, 단순히 '나이가 들면 문해력이 낮아진다'는 인과 해석은 제한됩니다.")
+
 if mode == "all":
     render_chart1(); st.divider()
     render_chart2(); st.divider()
@@ -936,7 +1138,8 @@ if mode == "all":
     render_chart7(); st.divider()
     render_chart8(); st.divider()
     render_chart9(); st.divider()
-    render_chart10()
+    render_chart_oecd(); st.divider()
+    render_chart_box()
 elif mode == "chart1":
     render_chart1()
 elif mode == "chart2":
@@ -953,8 +1156,12 @@ elif mode == "chart8":
     render_chart8()
 elif mode == "chart9":
     render_chart9()
-elif mode == "chart10":
-    render_chart10(); st.divider()
+elif mode == "chart_oecd":
+    render_chart_oecd()
+elif mode == "chart_box":
+    render_chart_box(); st.divider()
+    render_chart_oecd(); st.divider()
+    render_chart_box(); st.divider()
     render_chart10()
 
 st.divider()
@@ -963,4 +1170,9 @@ st.caption("데이터 출처: 교육부 학업성취도평가 · 국가평생교
 
 # ════════════════════════════════════════════════
 # 차트 10 — 다중회귀분석: 영향력 비교
+# ════════════════════════════════════════════════
+
+
+# ════════════════════════════════════════════════
+# 차트 OECD — 국가별 문해력 비교
 # ════════════════════════════════════════════════

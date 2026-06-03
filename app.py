@@ -779,43 +779,6 @@ def render_chart9():
     st.warning("⚠️ PIAAC의 독서활동 지수(READHOMEC2_T1)는 읽기 활동의 빈도·다양성을 종합한 WLE 지수로, 독서 시간(분)과 다릅니다.")
 
 
-if mode == "all":
-    render_chart1(); st.divider()
-    render_chart2(); st.divider()
-    render_chart6(); st.divider()
-    render_chart5(); st.divider()
-    render_chart4(); st.divider()
-    render_chart7(); st.divider()
-    render_chart8(); st.divider()
-    render_chart9(); st.divider()
-    render_chart10()
-elif mode == "chart1":
-    render_chart1()
-elif mode == "chart2":
-    render_chart2()
-elif mode == "chart4":
-    render_chart4()
-elif mode == "chart5":
-    render_chart5()
-elif mode == "chart6":
-    render_chart6()
-elif mode == "chart7":
-    render_chart7()
-elif mode == "chart8":
-    render_chart8()
-elif mode == "chart9":
-    render_chart9()
-elif mode == "chart10":
-    render_chart10(); st.divider()
-    render_chart10()
-
-st.divider()
-st.caption("데이터 출처: 교육부 학업성취도평가 · 국가평생교육진흥원 · 문화체육관광부 · KISDI | 경기도교육연구원 정책연구 2022-09")
-
-
-# ════════════════════════════════════════════════
-# 차트 10 — 다중회귀분석: 영향력 비교
-# ════════════════════════════════════════════════
 def render_chart10():
     st.subheader("📊 차트 9 — 다중회귀분석: 문해력에 영향을 미치는 요인 비교")
     st.markdown("""
@@ -963,3 +926,41 @@ def render_chart10():
 연령대의 강한 음의 효과는 단순히 '나이 때문'이 아닌, 고령층의 낮은 디지털 노출·교육 기회 등
 복합 요인이 반영된 결과일 수 있습니다. 인과관계가 아닌 상관관계임을 명시합니다.
 """)
+
+if mode == "all":
+    render_chart1(); st.divider()
+    render_chart2(); st.divider()
+    render_chart6(); st.divider()
+    render_chart5(); st.divider()
+    render_chart4(); st.divider()
+    render_chart7(); st.divider()
+    render_chart8(); st.divider()
+    render_chart9(); st.divider()
+    render_chart10()
+elif mode == "chart1":
+    render_chart1()
+elif mode == "chart2":
+    render_chart2()
+elif mode == "chart4":
+    render_chart4()
+elif mode == "chart5":
+    render_chart5()
+elif mode == "chart6":
+    render_chart6()
+elif mode == "chart7":
+    render_chart7()
+elif mode == "chart8":
+    render_chart8()
+elif mode == "chart9":
+    render_chart9()
+elif mode == "chart10":
+    render_chart10(); st.divider()
+    render_chart10()
+
+st.divider()
+st.caption("데이터 출처: 교육부 학업성취도평가 · 국가평생교육진흥원 · 문화체육관광부 · KISDI | 경기도교육연구원 정책연구 2022-09")
+
+
+# ════════════════════════════════════════════════
+# 차트 10 — 다중회귀분석: 영향력 비교
+# ════════════════════════════════════════════════

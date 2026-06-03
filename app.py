@@ -365,40 +365,6 @@ def render_chart5():
 """)
 
 
-# ════════════════════════════════════════════════
-# 렌더링
-# ════════════════════════════════════════════════
-if mode == "all":
-    render_chart1(); st.divider()
-    render_chart2(); st.divider()
-    render_chart3(); st.divider()
-    render_chart6(); st.divider()
-    render_chart5(); st.divider()
-    render_chart4(); st.divider()
-    render_chart7(); st.divider()
-    render_chart8(); st.divider()
-    render_chart9()
-elif mode == "chart1":
-    render_chart1()
-elif mode == "chart2":
-    render_chart2()
-elif mode == "chart3":
-    render_chart3()
-elif mode == "chart4":
-    render_chart4()
-elif mode == "chart5":
-    render_chart5()
-elif mode == "chart6":
-    render_chart6()
-elif mode == "chart7":
-    render_chart7()
-elif mode == "chart8":
-    render_chart8()
-elif mode == "chart9":
-    render_chart9()
-
-st.divider()
-st.caption("데이터 출처: 교육부 학업성취도평가 · 국가평생교육진흥원 · 문화체육관광부 · KISDI | 경기도교육연구원 정책연구 2022-09")
 
 
 # ════════════════════════════════════════════════
@@ -843,3 +809,39 @@ def render_chart9():
 - 학력 통제 후 상관계수가 감소(독서: 0.332→0.234)하는 것은 학력 효과가 실제로 존재함을 보여주며, 순수 독서 효과는 그 이상임을 시사합니다.
 """)
     st.warning("⚠️ PIAAC의 독서활동 지수(READHOMEC2_T1)는 읽기 활동의 빈도·다양성을 종합한 WLE 지수로, 독서 시간(분)과 다릅니다.")
+
+# ════════════════════════════════════════════════
+# 렌더링
+# ════════════════════════════════════════════════
+if mode == "all":
+    render_chart1(); st.divider()
+    render_chart2(); st.divider()
+    render_chart3(); st.divider()
+    render_chart6(); st.divider()
+    render_chart5(); st.divider()
+    render_chart4(); st.divider()
+    render_chart7(); st.divider()
+    render_chart8(); st.divider()
+    render_chart9()
+elif mode == "chart1":
+    render_chart1()
+elif mode == "chart2":
+    render_chart2()
+elif mode == "chart3":
+    render_chart3()
+elif mode == "chart4":
+    render_chart4()
+elif mode == "chart5":
+    render_chart5()
+elif mode == "chart6":
+    render_chart6()
+elif mode == "chart7":
+    render_chart7()
+elif mode == "chart8":
+    render_chart8()
+elif mode == "chart9":
+    render_chart9()
+
+st.divider()
+st.caption("데이터 출처: 교육부 학업성취도평가 · 국가평생교육진흥원 · 문화체육관광부 · KISDI | 경기도교육연구원 정책연구 2022-09")
+

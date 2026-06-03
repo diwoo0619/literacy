@@ -69,14 +69,13 @@ chart_options = {
     "전체 보기": "all",
     "차트 1 — 기초학력 미달률 추이": "chart1",
     "차트 2 — 코로나 전후 t-test": "chart2",
-    "차트 3 — 전략A: 청년층 Gap 변화": "chart6",
-    "차트 4 — OTT 이용 ↔ 문해력": "chart5",
-    "차트 5 — 독서시간 ↔ 문해력": "chart4",
-    "차트 6 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
-    "차트 7 — 디지털 네이티브 역설": "chart8",
-    "차트 8 — PIAAC 학력통제 편상관": "chart9",
-    "차트 9 — OECD 국가 비교": "chart_oecd",
-    "차트 10 — 세대별 문해력 분포 (박스플롯)": "chart_box",
+    "차트 3 — 세대별 문해력 분포": "chart_box",
+    "차트 4 — 전략A: 청년층 Gap 변화": "chart6",
+    "차트 5 — OTT 이용 ↔ 문해력": "chart5",
+    "차트 6 — 독서시간 ↔ 문해력": "chart4",
+    "차트 7 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+    "차트 8 — 디지털 네이티브 역설": "chart8",
+    "차트 9 — PIAAC 학력통제 편상관": "chart9",
 }
 selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
 mode = chart_options[selected]
@@ -1132,14 +1131,13 @@ def render_chart_box():
 if mode == "all":
     render_chart1(); st.divider()
     render_chart2(); st.divider()
+    render_chart_box(); st.divider()
     render_chart6(); st.divider()
     render_chart5(); st.divider()
     render_chart4(); st.divider()
     render_chart7(); st.divider()
     render_chart8(); st.divider()
-    render_chart9(); st.divider()
-    render_chart_oecd(); st.divider()
-    render_chart_box()
+    render_chart9()
 elif mode == "chart1":
     render_chart1()
 elif mode == "chart2":
@@ -1156,8 +1154,6 @@ elif mode == "chart8":
     render_chart8()
 elif mode == "chart9":
     render_chart9()
-elif mode == "chart_oecd":
-    render_chart_oecd()
 elif mode == "chart_box":
     render_chart_box(); st.divider()
     render_chart_oecd(); st.divider()

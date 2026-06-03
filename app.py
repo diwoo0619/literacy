@@ -733,8 +733,7 @@ def render_chart9():
         ax.text(xi, val+0.025, '***', ha='center', fontsize=12, color=TEAL)
 
     ax.axhline(0, color='black', linewidth=0.8)
-    ax.set_title('단순 상관 vs 학력 통제 편상관
-(PIAAC 2023 한국, n≈6,100)', fontsize=11, fontweight='bold')
+    ax.set_title('단순 상관 vs 학력 통제 편상관 (PIAAC 2023 한국, n≈6,100)', fontsize=11, fontweight='bold')
     ax.set_ylabel('피어슨 상관계수 (r)')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
@@ -748,11 +747,9 @@ def render_chart9():
                    color=edu_colors, alpha=0.85, width=0.5)
     for bar, score, n in zip(bars, edu_data['평균점수'], edu_data['표본수']):
         ax2.text(bar.get_x()+bar.get_width()/2, bar.get_height()+1,
-                 f'{score:.0f}점
-(n={n:,})', ha='center', fontsize=9, fontweight='bold')
+                 f'{score:.0f}점 (n={n:,})', ha='center', fontsize=9, fontweight='bold')
 
-    ax2.set_title('학력별 평균 문해력 점수
-(PIAAC 2023 한국)', fontsize=11, fontweight='bold')
+    ax2.set_title('학력별 평균 문해력 점수 (PIAAC 2023 한국)', fontsize=11, fontweight='bold')
     ax2.set_ylabel('문해력 평균 점수')
     ax2.set_ylim(150, 310)
     ax2.grid(axis='y', alpha=0.3)

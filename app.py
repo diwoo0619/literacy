@@ -63,6 +63,15 @@ st.markdown("""
 """)
 st.divider()
 
+tables = pd.read_sql("""
+SELECT name 
+FROM sqlite_master 
+WHERE type='table'
+ORDER BY name
+""", conn)
+
+st.write(tables)
+
 # ── 사이드바 ────────────────────────────────────────────────────
 st.sidebar.title("📊 차트 선택")
 chart_options = {

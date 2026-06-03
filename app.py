@@ -69,13 +69,13 @@ chart_options = {
     "전체 보기": "all",
     "차트 1 — 기초학력 미달률 추이": "chart1",
     "차트 2 — 코로나 전후 t-test": "chart2",
-    "차트 3 — 청년층 Gap 변화": "chart6",
+    "차트 3 — 전략A: 청년층 Gap 변화": "chart6",
     "차트 4 — 세대별 문해력 분포": "chart_box",
     "차트 5 — OTT 이용 ↔ 문해력": "chart5",
     "차트 6 — 디지털 네이티브 역설": "chart8",
     "차트 7 — 독서시간 ↔ 문해력": "chart4",
     "차트 8 — PIAAC 학력통제 편상관": "chart9",
-    "차트 9 — 독서 vs OTT 트레이드오프": "chart7",
+    "차트 9 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
 }
 selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
 mode = chart_options[selected]
@@ -146,52 +146,54 @@ def render_chart2():
     """
     df = pd.read_sql(sql, conn)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     school_types = ['중학교', '고등학교']
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     for ax, school in zip(axes, school_types):
-        df_s   = df[df['school_type'] == school]
-        pre    = df_s[df_s['corona_period'] == 0]['fail_rate'].values
-        post   = df_s[df_s['corona_period'] == 1]['fail_rate'].values
+        df_s      = df[df['school_type'] == school]
+        pre       = df_s[df_s['corona_period'] == 0]['fail_rate'].values
+        post      = df_s[df_s['corona_period'] == 1]['fail_rate'].values
         t_stat, p_val = stats.ttest_ind(pre, post)
-        pre_mean  = pre.mean()
-        post_mean = post.mean()
+        pre_mean  = float(pre.mean())
+        post_mean = float(post.mean())
 
-        bars = ax.bar(
-            ['코로나 이전\n(2015~2019)', '코로나 이후\n(2020~2024)'],
-            [pre_mean, post_mean],
-            color=[BLUE, CORAL], width=0.5, edgecolor='white'
-        )
-        for bar, val in zip(bars, [pre_mean, post_mean]):
+        x_labels = ['코로나 이전\n(2015~2019)', '코로나 이후\n(2020~2024)']
+        bar_vals  = [pre_mean, post_mean]
+        bars = ax.bar(x_labels, bar_vals,
+                      color=[BLUE, CORAL], width=0.45, edgecolor='white')
+        for bar, val in zip(bars, bar_vals):
             ax.text(bar.get_x() + bar.get_width()/2,
-                    bar.get_height() + 0.1,
+                    bar.get_height() + 0.12,
                     f'{val:.2f}%', ha='center', fontsize=12, fontweight='bold')
+
         sig = "유의 (p<0.05)" if p_val < 0.05 else "비유의"
-        ax.set_title(f'{school} 국어 미달률 — 코로나 전후', fontsize=11, fontweight='bold')
+        ax.set_title(f'{school} 국어 미달률\n코로나 전후 비교',
+                     fontsize=11, fontweight='bold')
         ax.set_ylabel('평균 미달률 (%)')
-        ax.set_ylim(0, max(pre_mean, post_mean) * 1.35)
+        ax.set_ylim(0, max(pre_mean, post_mean) * 1.4)
         ax.grid(axis='y', alpha=0.3)
-        ax.text(0.5, -0.15,
+        ax.text(0.5, 0.04,
                 f't={t_stat:.3f}, p={p_val:.4f} | {sig}',
                 transform=ax.transAxes, ha='center', fontsize=9,
-                color='#993C1D' if p_val < 0.05 else GRAY)
+                color='#993C1D' if p_val < 0.05 else GRAY,
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
 
-    plt.suptitle('국어 기초학력 미달률 — 코로나 전후 비교 (t-test)', fontsize=13, fontweight='bold')
+    plt.suptitle('국어 기초학력 미달률 — 코로나 전후 비교 (t-test)',
+                 fontsize=13, fontweight='bold')
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
 
-    # 두 학교급 메트릭
+    # 메트릭
     st.markdown("**학교급별 상세**")
     cols = st.columns(4)
     for i, school in enumerate(school_types):
         df_s = df[df['school_type'] == school]
         pre  = df_s[df_s['corona_period'] == 0]['fail_rate'].values
         post = df_s[df_s['corona_period'] == 1]['fail_rate'].values
-        _, p = stats.ttest_ind(pre, post)
-        cols[i*2].metric(f"{school} 이전", f"{pre.mean():.2f}%")
+        cols[i*2].metric(f"{school} 이전",   f"{pre.mean():.2f}%")
         cols[i*2+1].metric(f"{school} 이후", f"{post.mean():.2f}%",
-                           f"+{post.mean()-pre.mean():.2f}%p")
+                            f"+{post.mean()-pre.mean():.2f}%p")
     show_sql(sql)
     st.info("""
 💡 **인사이트**
@@ -271,7 +273,7 @@ def render_chart4():
     df = pd.read_sql(sql, conn)
     r_val, p_val = stats.pearsonr(df['avg_read_min_total'], df['level4_pct'])
 
-    fig, ax1 = plt.subplots(figsize=(10, 5))
+    fig, ax1 = plt.subplots(figsize=(12, 5))
     ax2 = ax1.twinx()
     x = np.arange(len(df))
     bars = ax1.bar(x, df['avg_read_min_total'], color=BLUE, alpha=0.7,
@@ -290,7 +292,7 @@ def render_chart4():
     ax1.set_ylabel('평균 독서시간 (분)', color=BLUE)
     ax2.set_ylabel('수준4 비율 (%)', color=CORAL)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(df['age_group_label'])
+    ax1.set_xticklabels(df['age_group_label'], rotation=15)
     ax1.set_ylim(0, max(df['avg_read_min_total']) * 1.4)
     ax2.set_ylim(0, 115)
     ax1.tick_params(axis='y', colors=BLUE)
@@ -342,7 +344,7 @@ def render_chart5():
     r_ott, p_ott = stats.pearsonr(df['avg_ott_min'], df['level4_pct'])
     r_sns, p_sns = stats.pearsonr(df['sns_pct'], df['level4_pct'])
 
-    fig, ax1 = plt.subplots(figsize=(10, 5))
+    fig, ax1 = plt.subplots(figsize=(12, 5))
     ax2 = ax1.twinx()
     x = np.arange(len(df))
     bars = ax1.bar(x, df['avg_ott_min'], color=AMBER, alpha=0.75,
@@ -361,7 +363,7 @@ def render_chart5():
     ax1.set_ylabel('OTT 주간 평균 이용시간 (분)', color=AMBER)
     ax2.set_ylabel('수준4 비율 (%)', color=BLUE)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(df['age_group_label'])
+    ax1.set_xticklabels(df['age_group_label'], rotation=15)
     ax1.set_ylim(0, max(df['avg_ott_min']) * 1.4)
     ax2.set_ylim(0, 115)
     ax1.tick_params(axis='y', colors=AMBER)
@@ -390,10 +392,10 @@ def render_chart5():
 
 
 # ════════════════════════════════════════════════
-# 차트 6 — 청년층 상대적 Gap 변화
+# 차트 6 — 전략 A: 청년층 상대적 Gap 변화
 # ════════════════════════════════════════════════
 def render_chart6():
-    st.subheader("📊 차트 3 — 전체 평균 대비 연령대별 문해력 우위(Gap) 변화")
+    st.subheader("📊 차트 3 — 전략A: 전체 평균 대비 연령대별 문해력 우위(Gap) 변화")
     st.markdown("""
     절대값이 아닌 **'전체 평균 대비 각 연령대의 격차(Gap)'** 를 봅니다.
     절대 점수는 올라도 상대적 우위가 좁혀지고 있다면 문해력 하락의 신호입니다.
@@ -446,6 +448,7 @@ def render_chart6():
     ax.set_xlabel('조사연도')
     ax.set_ylabel('Gap (%p)')
     ax.set_xticks([2017, 2020, 2023])
+    ax.set_xlim(2016, 2024)
     ax.legend(fontsize=9)
     ax.grid(axis='y', alpha=0.3)
 
@@ -484,7 +487,7 @@ def render_chart6():
     gap_2017 = float(youth[youth['survey_year']==2017]['gap'])
     gap_2023 = float(youth[youth['survey_year']==2023]['gap'])
     st.info(f"""
-💡 **인사이트**
+💡 **인사이트 (전략 A)**
 - 18~29세 청년층의 문해력 우위가 2017년 +{gap_2017:.1f}%p → 2023년 +{gap_2023:.1f}%p로 좁혀지고 있습니다.
 - 절대적 수준4 비율은 상승했지만, 전체 평균 대비 상대적 우위는 감소하는 추세입니다.
 - 이는 "청년층의 문해력이 절대적으로 낮아졌다"가 아닌 "타 연령대 대비 상대적 강점이 약화되고 있다"는 해석을 가능하게 합니다.
@@ -492,10 +495,10 @@ def render_chart6():
 
 
 # ════════════════════════════════════════════════
-# 차트 7 — 독서시간 vs OTT 트레이드오프
+# 차트 7 — 전략 B: 독서시간 vs OTT 트레이드오프
 # ════════════════════════════════════════════════
 def render_chart7():
-    st.subheader("📊 차트 9 — 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
+    st.subheader("📊 차트 9 — 전략B: 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
     st.markdown("""
     **독서시간(감소)과 OTT 이용시간(증가)** 의 교차 패턴을 통해
     '미디어 대체' 현상과 문해력의 관계를 확인합니다.
@@ -584,7 +587,7 @@ def render_chart7():
     show_sql(sql_ott)
     st.warning("⚠️ 독서시간(2023년)과 OTT 이용시간(2023년)은 같은 연도 집계이나, 서로 다른 조사에서 추출한 데이터입니다.")
     st.info(f"""
-💡 **인사이트**
+💡 **인사이트 (전략 B)**
 - 독서시간이 많은 연령대(18~29세: 36분)에서 OTT 이용시간도 가장 많아(221분/주), 단순한 '독서 대체' 구도가 아님을 보여줍니다.
 - 산점도에서 독서시간↑ → 문해력↑ 의 양의 상관(r = {r_val:.3f})이 확인되나, OTT 이용시간이 많은 집단(밝은색)이 오히려 문해력도 높은 역설적 패턴이 나타납니다.
 - 이는 연령 효과(젊을수록 독서·OTT 모두 많고 교육 수준도 높음)가 미디어 대체 효과를 압도하고 있음을 시사합니다.
@@ -1060,7 +1063,8 @@ def render_chart_box():
     valid_colors = [age_colors[age_order.index(age)] for age in valid_ages]
 
     bp = ax.boxplot(bp_data, labels=valid_ages, patch_artist=True,
-                    notch=False, medianprops=dict(color='white', linewidth=2.5))
+                    notch=False, showfliers=False,
+                    medianprops=dict(color='white', linewidth=2.5))
     for patch, color in zip(bp['boxes'], valid_colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.8)

@@ -41,6 +41,10 @@ st.set_page_config(
     layout="wide"
 )
 
+st.title("📚 한국 문해력 저하 현상 원인 분석") # 메인 제목
+st.caption(f"현재 섹션: {category}") # 현재 선택한 분석 카테고리 표시
+st.divider() # 구분선 추가
+
 DB_FILE = "경영정보처리론2조.db"
 if not os.path.exists(DB_FILE):
     st.error(f"⚠️ 데이터베이스 파일({DB_FILE})이 없습니다. 같은 폴더에 파일을 넣어주세요.")

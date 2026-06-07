@@ -41,7 +41,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 대한민국 한국 문해력 저하 현상 원인 분석")
+st.title("📚 한국 문해력 저하 현상 원인 분석")
 st.markdown("---") # 깔끔한 구분선으로 본문과 분리
 
 # 2. 데이터베이스 연결 설정

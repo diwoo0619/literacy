@@ -1,0 +1,386 @@
+# ============================================================
+# 2. 한글 폰트 설정
+# 런타임 재시작 후 실행
+# ============================================================
+
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import seaborn as sns
+import os
+
+# 사용 가능한 나눔 폰트 확인
+font_list = [f.name for f in fm.fontManager.ttflist if 'Nanum' in f.name]
+print("사용 가능한 Nanum 폰트:", sorted(set(font_list)))
+
+# 가장 안정적인 NanumGothic 직접 지정
+font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+
+if os.path.exists(font_path):
+    fm.fontManager.addfont(font_path)
+    font_name = fm.FontProperties(fname=font_path).get_name()
+    plt.rcParams["font.family"] = font_name
+    plt.rcParams["axes.unicode_minus"] = False
+    sns.set_theme(font=font_name, rc={"axes.unicode_minus": False})
+    print("적용된 폰트:", font_name)
+else:
+    print("NanumGothic.ttf 파일을 찾지 못했습니다.")
+
+# ============================================================
+# PIAAC 한국 문해력 다중회귀분석 — 최종 통합본
+#
+# 기존 보고서(차트1~9) 추가 검증용
+# 수정 사항:
+#   1) PV 10개 → Rubin's rule 결합 (표준오차 정확)
+#   2) 기준집단 명시 (저학력, 16-24세)
+#   3) 한글 폰트 명시적 처리
+#   4) 시각화 + 보고서 문장 자동 출력 통합
+# ============================================================
+
+
+# ── 0. 패키지 설치 ───────────────────────────────────────────
+!pip install pandas numpy matplotlib seaborn statsmodels scikit-learn -q
+!apt-get update -qq
+!apt-get install -y fonts-nanum fonts-nanum-coding fonts-nanum-extra -qq
+!fc-cache -fv > /dev/null
+!rm -rf ~/.cache/matplotlib
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import seaborn as sns
+import statsmodels.formula.api as smf
+from scipy import stats as scipy_stats
+from statsmodels.iolib.summary2 import summary_col
+import warnings
+warnings.filterwarnings('ignore')
+
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.float_format', '{:.3f}'.format)
+
+
+# ── 0-1. 한글 폰트 ───────────────────────────────────────────
+font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+fm.fontManager.addfont(font_path)
+font_name = fm.FontProperties(fname=font_path).get_name()
+plt.rcParams['font.family']        = font_name
+plt.rcParams['font.sans-serif']    = [font_name]
+plt.rcParams['axes.unicode_minus'] = False
+sns.set_theme(style="whitegrid", font=font_name,
+              rc={"font.family": font_name, "axes.unicode_minus": False})
+fontprop = fm.FontProperties(fname=font_path)
+print("한글 폰트:", font_name)
+
+
+# ── 1. 데이터 로드 ────────────────────────────────────────────
+from google.colab import drive
+drive.mount('/content/drive')
+
+df_raw = pd.read_csv('/content/drive/MyDrive/prgkorp2.csv',
+                     sep=';', low_memory=False)
+print(f"원자료: {df_raw.shape[0]:,}행 × {df_raw.shape[1]:,}열")
+
+
+# ── 2. 변수 선택 및 전처리 ────────────────────────────────────
+PV = [f'PVLIT{i}' for i in range(1, 11)]
+NEED = PV + ['AGEG10LFS', 'GENDER_R', 'EDLEVEL3',
+             'READHOMEC2_T1', 'ICTHOMEC2', 'SPFWT0']
+
+data = df_raw[[c for c in NEED if c in df_raw.columns]].copy()
+
+# 결측 코드 → NaN → 숫자 변환
+MISS = ['.n','.d','.r','.v','.m','.x','.','nan','NaN','']
+for c in data.columns:
+    data[c] = data[c].replace(MISS, np.nan)
+    data[c] = pd.to_numeric(data[c], errors='coerce')
+
+# 파생 변수
+data['age_group'] = data['AGEG10LFS'].astype('Int64')
+data['edu']       = data['EDLEVEL3'].astype('Int64')
+data['female']    = (data['GENDER_R'] == 2).astype(float)
+
+# 연령·학력 레이블
+AGE_MAP = {1:'16-24세', 2:'25-34세', 3:'35-44세', 4:'45-54세', 5:'55-65세'}
+EDU_MAP = {1:'저학력', 2:'중간학력', 3:'고학력'}
+data['age_label'] = data['age_group'].map(AGE_MAP)
+data['edu_label'] = data['edu'].map(EDU_MAP)
+data['gender_label'] = data['GENDER_R'].map({1:'남성', 2:'여성'})
+
+# 표준화 (독서·ICT)
+for c in ['READHOMEC2_T1', 'ICTHOMEC2']:
+    mu, sd = data[c].mean(), data[c].std()
+    data[f'{c}_z'] = (data[c] - mu) / sd
+
+# 분석 대상 확정
+ANALYSIS_VARS = ['age_label','edu_label','gender_label',
+                 'READHOMEC2_T1_z','ICTHOMEC2_z','SPFWT0'] + PV
+df = data[data['edu'].isin([1,2,3])].dropna(subset=ANALYSIS_VARS).copy()
+
+print(f"분석 대상: {len(df):,}명")
+print(f"\n연령대 분포:\n{df['age_label'].value_counts().sort_index()}")
+print(f"\n학력 분포:\n{df['edu_label'].value_counts()}")
+print(f"\n성별 분포:\n{df['gender_label'].value_counts()}")
+
+
+# ── 3. 기술통계 ───────────────────────────────────────────────
+df['lit_mean'] = df[PV].mean(axis=1)   # 기술통계·시각화용 (회귀엔 사용 안 함)
+
+age_summary = (df.groupby('age_label', observed=False)
+                 .agg(n=('lit_mean','count'),
+                      lit_mean=('lit_mean','mean'),
+                      read_mean=('READHOMEC2_T1','mean'),
+                      ict_mean=('ICTHOMEC2','mean'))
+                 .loc[list(AGE_MAP.values())])
+
+print("\n[연령대별 평균]")
+display(age_summary)
+
+corr = df[['lit_mean','READHOMEC2_T1_z','ICTHOMEC2_z']].corr()
+print("\n[기초 상관관계]")
+display(corr)
+
+
+# ── 4. Rubin's Rule 함수 ──────────────────────────────────────
+def rubin(formula, data, weight_col='SPFWT0'):
+    """
+    PV 10개 각각 WLS → Rubin's rule 결합
+    반환: betas, se, p_vals (모두 pd.Series), r2_mean (float)
+    """
+    models = []
+    for pv in PV:
+        d = data.copy()
+        d['LIT'] = d[pv]
+        m = smf.wls(formula, data=d, weights=d[weight_col]).fit()
+        models.append(m)
+
+    params_df   = pd.DataFrame([m.params for m in models])
+    betas       = params_df.mean()
+    within_var  = pd.DataFrame([m.bse**2 for m in models]).mean()
+    between_var = params_df.var()
+    M           = len(models)
+    total_var   = within_var + (1 + 1/M) * between_var
+    se          = np.sqrt(total_var)
+    t_stats     = betas / se
+    lam         = (1 + 1/M) * between_var / total_var
+    df_r        = (M - 1) / (lam ** 2)
+    p_vals = pd.Series(
+        {k: 2 * scipy_stats.t.sf(abs(t_stats[k]), df=df_r[k])
+         for k in betas.index},
+        index=betas.index
+    )
+    r2 = np.mean([m.rsquared for m in models])
+    return betas, se, p_vals, r2
+
+
+# ── 5. 세 모델 추정 ───────────────────────────────────────────
+# 기준집단 명시: 연령=16-24세, 학력=저학력
+F1 = ('LIT ~ C(age_label, Treatment("16-24세"))')
+F2 = ('LIT ~ C(age_label, Treatment("16-24세"))'
+      ' + C(edu_label, Treatment("저학력"))'
+      ' + female')
+F3 = ('LIT ~ C(age_label, Treatment("16-24세"))'
+      ' + C(edu_label, Treatment("저학력"))'
+      ' + female'
+      ' + READHOMEC2_T1_z + ICTHOMEC2_z')
+
+b1, s1, p1, r1 = rubin(F1, df)
+b2, s2, p2, r2 = rubin(F2, df)
+b3, s3, p3, r3 = rubin(F3, df)
+
+print(f"\nR²: M1={r1:.3f}  M2={r2:.3f}  M3={r3:.3f}")
+
+
+# ── 6. 결과 출력 ──────────────────────────────────────────────
+def sig(p):
+    if p < 0.001: return '***'
+    elif p < 0.01:  return '** '
+    elif p < 0.05:  return '*  '
+    else:            return '   '
+
+# Treatment() 적용 시 키 이름 패턴
+LABEL = {
+    'Intercept': '절편',
+    'C(age_label, Treatment("16-24세"))[T.25-34세]' : '연령: 25-34세 (기준=16-24세)',
+    'C(age_label, Treatment("16-24세"))[T.35-44세]' : '연령: 35-44세',
+    'C(age_label, Treatment("16-24세"))[T.45-54세]' : '연령: 45-54세',
+    'C(age_label, Treatment("16-24세"))[T.55-65세]' : '연령: 55-65세',
+    'C(edu_label, Treatment("저학력"))[T.중간학력]'  : '학력: 중간학력 (기준=저학력)',
+    'C(edu_label, Treatment("저학력"))[T.고학력]'    : '학력: 고학력',
+    'female'            : '여성 더미',
+    'READHOMEC2_T1_z'   : '독서활동 (표준화)',
+    'ICTHOMEC2_z'       : '가정 ICT이용 (표준화)',
+}
+
+def print_model(title, betas, se, p_vals, r2):
+    print(f"\n{'='*70}")
+    print(f"  {title}   (Rubin's rule, 10 PV, WLS)   R²={r2:.3f}")
+    print(f"{'='*70}")
+    print(f"{'변수':<42} {'계수':>8} {'SE':>7} {'p':>8}  유의")
+    print(f"{'-'*70}")
+    for k, lbl in LABEL.items():
+        if k not in betas.index: continue
+        print(f"{lbl:<42} {betas[k]:>8.2f} {se[k]:>7.2f} {p_vals[k]:>8.4f}  {sig(p_vals[k])}")
+    print("유의수준: *** p<.001  ** p<.01  * p<.05")
+
+print_model("M1: 연령만 — 차트4 세대격차 검정", b1, s1, p1, r1)
+print_model("M2: +학력·성별 — 연령 효과 분리", b2, s2, p2, r2)
+print_model("M3: +독서·ICT — 차트8 편상관의 다중회귀 버전", b3, s3, p3, r3)
+
+
+# ── 7. 모델별 연령 계수 변화 요약 ────────────────────────────
+AGE_KEYS = [
+    'C(age_label, Treatment("16-24세"))[T.25-34세]',
+    'C(age_label, Treatment("16-24세"))[T.35-44세]',
+    'C(age_label, Treatment("16-24세"))[T.45-54세]',
+    'C(age_label, Treatment("16-24세"))[T.55-65세]',
+]
+AGE_SHORT = ['25-34세','35-44세','45-54세','55-65세']
+
+print(f"\n{'='*58}")
+print("  연령 계수 변화 (기준: 16-24세)")
+print(f"{'='*58}")
+print(f"{'연령대':<10} {'M1(연령만)':>12} {'M2(+학력)':>12} {'M3(+독서ICT)':>14}")
+print(f"{'-'*58}")
+for k, lbl in zip(AGE_KEYS, AGE_SHORT):
+    v1 = b1.get(k, np.nan)
+    v2 = b2.get(k, np.nan)
+    v3 = b3.get(k, np.nan)
+    print(f"{lbl:<10} {v1:>+12.1f} {v2:>+12.1f} {v3:>+14.1f}")
+print(f"\nR² 증가: M1({r1:.3f}) → M2({r2:.3f}, +{r2-r1:.3f}) → M3({r3:.3f}, +{r3-r2:.3f})")
+
+
+# ── 8. 시각화 ─────────────────────────────────────────────────
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+fig.suptitle('PIAAC 2023 한국 문해력 다중회귀 분석\n'
+             '(Rubin\'s rule · 10 PV · WLS 가중치)',
+             fontsize=13, fontweight='bold', y=1.01,
+             fontproperties=fontprop)
+
+# --- A: 연령대별 평균 문해력 ---
+ax = axes[0, 0]
+order = list(AGE_MAP.values())
+means = [age_summary.loc[a,'lit_mean'] for a in order]
+bars = ax.bar(order, means, color='#2980b9', alpha=0.8, edgecolor='white')
+ax.set_ylim(180, 300)
+for bar, v in zip(bars, means):
+    ax.text(bar.get_x()+bar.get_width()/2, v+1, f'{v:.1f}',
+            ha='center', va='bottom', fontsize=9, fontproperties=fontprop)
+ax.set_title('연령대별 평균 문해력 점수', fontproperties=fontprop)
+ax.set_ylabel('평균 점수', fontproperties=fontprop)
+ax.set_xticklabels(order, fontproperties=fontprop, fontsize=9)
+ax.grid(axis='y', alpha=0.3)
+
+# --- B: 상관관계 히트맵 ---
+ax2 = axes[0, 1]
+corr_plot = df[['lit_mean','READHOMEC2_T1_z','ICTHOMEC2_z']].corr()
+corr_plot.index   = ['문해력','독서활동','ICT이용']
+corr_plot.columns = ['문해력','독서활동','ICT이용']
+sns.heatmap(corr_plot, annot=True, cmap='Blues', fmt='.3f',
+            ax=ax2, annot_kws={'size':11})
+ax2.set_title('문해력·독서·ICT 상관관계', fontproperties=fontprop)
+ax2.set_xticklabels(ax2.get_xticklabels(), fontproperties=fontprop)
+ax2.set_yticklabels(ax2.get_yticklabels(), fontproperties=fontprop, rotation=0)
+
+# --- C: 연령 계수 모델별 변화 ---
+ax3 = axes[0, 2]
+x = np.arange(len(AGE_SHORT)); w = 0.26
+cols3 = ['#fadbd8','#f1948a','#c0392b']
+labs3 = ['M1: 연령만','M2: +학력','M3: +독서·ICT']
+for i, (betas_m, col, lbl) in enumerate(zip([b1,b2,b3], cols3, labs3)):
+    vals = [betas_m.get(k,0) for k in AGE_KEYS]
+    ax3.bar(x+(i-1)*w, vals, w, label=lbl,
+            color=col, edgecolor='#922b21', linewidth=0.8)
+ax3.axhline(0, color='black', linewidth=0.8)
+ax3.set_xticks(x)
+ax3.set_xticklabels(AGE_SHORT, fontproperties=fontprop, fontsize=9)
+ax3.set_ylabel('회귀계수 (기준: 16-24세)', fontproperties=fontprop)
+ax3.set_title('통제변수 추가에 따른 연령 계수 변화', fontproperties=fontprop)
+ax3.legend(prop=fontprop, fontsize=8)
+ax3.set_ylim(-75, 5)
+ax3.grid(axis='y', alpha=0.3)
+
+# --- D: M3 전체 계수 플롯 ---
+ax4 = axes[1, 0]
+plot_keys = [k for k in LABEL if k != 'Intercept' and k in b3.index]
+plot_lbls = [LABEL[k] for k in plot_keys]
+plot_vals = [b3[k] for k in plot_keys]
+plot_errs = [1.96*s3[k] for k in plot_keys]
+col4 = ['#e74c3c' if '연령' in l else
+        '#2980b9' if '학력' in l else
+        '#27ae60' if '독서' in l else
+        '#8e44ad' if 'ICT' in l else
+        '#95a5a6' for l in plot_lbls]
+ax4.barh(plot_lbls, plot_vals, xerr=plot_errs,
+         color=col4, alpha=0.85, capsize=4, height=0.6)
+ax4.axvline(0, color='black', linewidth=0.8, linestyle='--')
+ax4.set_xlabel('회귀계수 (문해력 점수)', fontproperties=fontprop)
+ax4.set_title('M3 최종모델: 독립변수별 계수 (95% CI)', fontproperties=fontprop)
+for i, (v, e, pk) in enumerate(zip(plot_vals, plot_errs, plot_keys)):
+    star = sig(p3[pk]).strip()
+    if star:
+        ax4.text(v+e+0.3, i, star, va='center', fontsize=9)
+ax4.invert_yaxis()
+ax4.set_yticklabels(plot_lbls, fontproperties=fontprop, fontsize=8)
+ax4.grid(axis='x', alpha=0.3)
+
+# --- E: 독서 산점도 ---
+ax5 = axes[1, 1]
+ax5.scatter(df['READHOMEC2_T1_z'], df['lit_mean'],
+            alpha=0.15, s=10, color='#27ae60')
+m, b_val = np.polyfit(df['READHOMEC2_T1_z'].dropna(),
+                      df.loc[df['READHOMEC2_T1_z'].notna(),'lit_mean'], 1)
+x_line = np.linspace(df['READHOMEC2_T1_z'].min(),
+                     df['READHOMEC2_T1_z'].max(), 100)
+ax5.plot(x_line, m*x_line+b_val, color='red', linewidth=2)
+ax5.set_title('독서활동지수 ↔ 문해력', fontproperties=fontprop)
+ax5.set_xlabel('독서활동지수 (표준화)', fontproperties=fontprop)
+ax5.set_ylabel('문해력 점수', fontproperties=fontprop)
+ax5.set_xticklabels(ax5.get_xticklabels(), fontproperties=fontprop)
+ax5.set_yticklabels(ax5.get_yticklabels(), fontproperties=fontprop)
+read_r = df[['READHOMEC2_T1_z','lit_mean']].corr().iloc[0,1]
+ax5.text(0.05, 0.92, f'r = {read_r:.3f}',
+         transform=ax5.transAxes, fontsize=10, fontproperties=fontprop)
+
+# --- F: R² 분해 파이차트 ---
+ax6 = axes[1, 2]
+pie_data = {
+    '연령\n(M1)':      r1,
+    '+학력·성별\n(M2)': r2-r1,
+    '+독서·ICT\n(M3)': r3-r2,
+    '미설명\n분산':     1-r3,
+}
+pie_colors = ['#e74c3c','#2980b9','#27ae60','#ecf0f1']
+wedges, texts, autotexts = ax6.pie(
+    pie_data.values(), labels=pie_data.keys(),
+    colors=pie_colors, autopct=lambda p: f'{p:.1f}%' if p>2 else '',
+    startangle=90, wedgeprops={'edgecolor':'white','linewidth':1.5}
+)
+for t in texts: t.set_fontproperties(fontprop)
+for at in autotexts: at.set_fontsize(8)
+ax6.set_title(f'문해력 분산 설명 분해\n(전체 R²={r3:.3f})',
+              fontproperties=fontprop)
+
+plt.tight_layout()
+plt.savefig('piaac_final.png', dpi=150, bbox_inches='tight')
+plt.show()
+print("차트 저장: piaac_final.png")
+
+
+# ── 9. 결과 CSV 저장 ──────────────────────────────────────────
+rows = []
+for k, lbl in LABEL.items():
+    if k not in b3.index: continue
+    rows.append({
+        '변수': lbl,
+        'M1_계수': round(b1.get(k, np.nan), 2),
+        'M2_계수': round(b2.get(k, np.nan), 2),
+        'M3_계수': round(b3.get(k, np.nan), 2),
+        'M3_SE':   round(s3.get(k, np.nan), 2),
+        'M3_p':    round(p3.get(k, np.nan), 4),
+        'M3_유의': sig(p3.get(k, 1)).strip(),
+    })
+pd.DataFrame(rows).to_csv('piaac_final_coefficients.csv',
+                           index=False, encoding='utf-8-sig')
+print("결과 저장: piaac_final_coefficients.csv")
+
+

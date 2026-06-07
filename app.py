@@ -54,22 +54,50 @@ conn = get_conn()
 
 
 # ── 사이드바 ────────────────────────────────────────────────────
-st.sidebar.title("📊 차트 선택")
-chart_options = {
-    "전체 보기":                               "all",
-    "차트 1 — 기초학력 미달률 추이":            "chart1",
-    "차트 2 — 코로나 전후 t-test":             "chart2",
-    "차트 3 — 전략A: 청년층 Gap 변화":         "chart6",
-    "차트 4 — 세대별 문해력 분포":              "chart_box",
-    "차트 5 — OTT 이용 ↔ 문해력":             "chart5",
-    "차트 6 — 디지털 네이티브 역설":            "chart8",
-    "차트 7 — 독서시간 ↔ 문해력":              "chart4",
-    "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
-    "차트 9 — PIAAC 다중회귀분석 ":  "chart_regression",
-}
-selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
-mode = chart_options[selected]
+import streamlit as st
 
+st.sidebar.title("📊 분석 카테고리 선택")
+
+# 1. 대분류(분석 카테고리) 선택
+category = st.sidebar.selectbox(
+    "분석 주제를 선택하세요",
+    [
+        "분석1 : 세대·학력별 문해력 수준",
+        "분석2 : 연령대별 독서시간과 문해력 수준의 상관관계",
+        "분석3 : 연령대별 미디어 매체 이용과 문해력 수준의 비교",
+        "PIAAC 분석"
+    ]
+)
+
+# 2. 대분류 선택에 따른 소분류(차트) 매핑 정보 정의
+if category == "분석1 : 세대·학력별 문해력 수준":
+    chart_options = {
+        "차트 1 — 기초학력 미달률 추이": "chart1",
+        "차트 2 — 코로나 전후 t-test": "chart2",
+        "차트 3 — 전략A: 청년층 Gap 변화": "chart6",
+        "차트 4 — 세대별 문해력 분포": "chart_box",
+    }
+elif category == "분석2 : 연령대별 독서시간과 문해력 수준의 상관관계":
+    chart_options = {
+        "차트 7 — 독서시간 ↔ 문해력": "chart4",
+        "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+    }
+elif category == "분석3 : 연령대별 미디어 매체 이용과 문해력 수준의 비교":
+    chart_options = {
+        "차트 5 — OTT 이용 ↔ 문해력": "chart5",
+        "차트 6 — 디지털 네이티브 역설": "chart8",
+    }
+else:  # "PIAAC 분석" 선택 시
+    chart_options = {
+        "차트 9 — PIAAC 다중회귀분석": "chart_regression"
+    }
+
+# 3. 소분류 라디오 버튼 렌더링
+selected_chart = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
+mode = chart_options[selected_chart]
+
+# --- 이후 본문 영역 예시 ---
+# st.write(f"현재 선택된 차트 모드: {mode}")
 def show_sql(sql):
     with st.expander("🔍 사용한 SQL 보기"):
         st.code(sql, language="sql")

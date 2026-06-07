@@ -747,9 +747,9 @@ PIAAC 2023 한국 개인 단위 데이터를 활용한 다중회귀분석 결과
 # 차트 8— 전략B: 트레이드오프
 # ════════════════════════════════════════════════
 def render_chart7():
-    st.subheader("📊 차트 8 — 전략B: 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
+    st.subheader("📊 차트 8 — 전략B: 연령대별 독서시간 vs 미디어 이용시간 트레이드오프")
     st.markdown("""
-    **독서시간(감소)과 OTT 이용시간(증가)** 의 교차 패턴을 통해
+    **독서시간(감소)과 미디어 이용시간(증가)** 의 교차 패턴을 통해
     '미디어 대체' 현상과 문해력의 관계를 확인합니다.
     """)
     sql_read = "SELECT age_group_id, avg_read_min_total FROM 독서실태조사 ORDER BY age_group_id"
@@ -769,15 +769,15 @@ def render_chart7():
     ax = axes[0]; ax2 = ax.twinx()
     x = np.arange(len(df))
     ax.bar(x-0.2, df['avg_read_min_total'], 0.35, color=BLUE, alpha=0.75, label='독서시간(분)')
-    ax2.bar(x+0.2, df['avg_ott'], 0.35, color=AMBER, alpha=0.75, label='OTT 이용시간(분)')
+    ax2.bar(x+0.2, df['avg_ott'], 0.35, color=AMBER, alpha=0.75, label='미디어 이용시간(분)')
     for i, (r, o) in enumerate(zip(df['avg_read_min_total'], df['avg_ott'])):
         ax.text(i-0.2, r+0.5, f'{r:.0f}', ha='center', fontsize=8, color=BLUE)
         ax2.text(i+0.2, o+1,  f'{o:.0f}', ha='center', fontsize=8, color=AMBER)
     ax.set_xlabel('연령대'); ax.set_ylabel('독서시간 (분/일)', color=BLUE)
-    ax2.set_ylabel('OTT 이용시간 (분/주)', color=AMBER)
+    ax2.set_ylabel('미디어 이용시간 (분/주)', color=AMBER)
     ax.set_xticks(x); ax.set_xticklabels(df['age_group_label'])
     ax.tick_params(axis='y', colors=BLUE); ax2.tick_params(axis='y', colors=AMBER)
-    ax.set_title('연령대별 독서시간 vs OTT 이용시간', fontsize=11, fontweight='bold')
+    ax.set_title('연령대별 독서시간 vs 미디어 이용시간', fontsize=11, fontweight='bold')
     lines1, l1 = ax.get_legend_handles_labels(); lines2, l2 = ax2.get_legend_handles_labels()
     ax.legend(lines1+lines2, l1+l2, loc='upper right', fontsize=9)
     ax.grid(axis='y', alpha=0.3)
@@ -785,7 +785,7 @@ def render_chart7():
     ax3 = axes[1]
     sc = ax3.scatter(df['avg_read_min_total'], df['level4_pct'],
                      c=df['avg_ott'], cmap='YlOrRd_r', s=180, edgecolors='gray', linewidths=0.5, zorder=3)
-    plt.colorbar(sc, ax=ax3, label='OTT 이용시간(분/주)')
+    plt.colorbar(sc, ax=ax3, label='미디어 이용시간(분/주)')
     z = np.polyfit(df['avg_read_min_total'], df['level4_pct'], 1)
     x_line = np.linspace(df['avg_read_min_total'].min(), df['avg_read_min_total'].max(), 100)
     ax3.plot(x_line, np.poly1d(z)(x_line), color=BLUE, linestyle='--', linewidth=1.5, alpha=0.7)
@@ -794,7 +794,7 @@ def render_chart7():
                      textcoords="offset points", xytext=(5, 5), fontsize=8)
     r_val, p_val = stats.pearsonr(df['avg_read_min_total'], df['level4_pct'])
     ax3.set_xlabel('평균 독서시간 (분/일)'); ax3.set_ylabel('문해력 수준4 비율 (%)')
-    ax3.set_title('독서시간 vs 문해력 산점도\n(점 색상=OTT 이용 많을수록 밝은색)', fontsize=11, fontweight='bold')
+    ax3.set_title('독서시간 vs 문해력 산점도\n(점 색상=미디어 이용 많을수록 밝은색)', fontsize=11, fontweight='bold')
     ax3.grid(alpha=0.3)
     ax3.text(0.05, 0.05, f'r={r_val:.3f}  (p={p_val:.3f})',
              transform=ax3.transAxes, fontsize=10, color=BLUE,
@@ -802,12 +802,12 @@ def render_chart7():
     plt.tight_layout()
     st.pyplot(fig); plt.close()
     show_sql(sql_ott)
-    st.warning("⚠️ 독서시간(2023년)과 OTT 이용시간(2023년)은 같은 연도 집계이나, 서로 다른 조사에서 추출한 데이터입니다.")
+  
     st.info(f"""
 💡 **인사이트 (전략 B)**
-- 독서시간이 많은 연령대(18~29세: 36분)에서 OTT 이용시간도 가장 많아(221분/주), 단순한 '독서 대체' 구도가 아님을 보여줍니다.
-- 산점도에서 독서시간↑ → 문해력↑ 의 양의 상관(r={r_val:.3f})이 확인되나, OTT 이용시간이 많은 집단(밝은색)이 오히려 문해력도 높은 역설적 패턴이 나타납니다.
-- 이는 연령 효과(젊을수록 독서·OTT 모두 많고 교육 수준도 높음)가 미디어 대체 효과를 압도하고 있음을 시사합니다.
+- 독서시간이 많은 연령대(18~29세: 36분)에서 미디어 이용시간도 가장 많아(221분/주), 단순한 '독서 대체' 구도가 아님을 보여줍니다.
+- 산점도에서 독서시간↑ → 문해력↑ 의 양의 상관(r={r_val:.3f})이 확인되나, 미디어 이용시간이 많은 집단(밝은색)이 오히려 문해력도 높은 역설적 패턴이 나타납니다.
+- 이는 연령 효과(젊을수록 독서·미디어 모두 많고 교육 수준도 높음)가 미디어 대체 효과를 압도하고 있음을 시사합니다.
 """)
 
 

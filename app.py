@@ -761,7 +761,7 @@ def render_chart_regression():
         "변수":   ["25-34세", "35-44세", "45-54세", "55-65세",
                    "고졸", "전문대이상",
                    "여성",
-                   "독서활동", "가정 ICT이용"],
+                   "독서활동", "ICT이용"],
         "그룹":   ["연령대", "연령대", "연령대", "연령대",
                    "학력",   "학력",
                    "성별",
@@ -784,8 +784,7 @@ def render_chart_regression():
                    "(표준화)", "(표준화)"],
     }
     df_coef = pd.DataFrame(coef_data)
-    df_coef["유의"] = df_coef["p"].apply(
-        lambda p: "***" if p < 0.001 else ("**" if p < 0.01 else ("*" if p < 0.05 else "—"))
+    
     )
     df_coef["CI_low"]  = df_coef["계수"] - 1.96 * df_coef["SE"]
     df_coef["CI_high"] = df_coef["계수"] + 1.96 * df_coef["SE"]
@@ -926,7 +925,6 @@ def render_chart_regression():
 동일한 연령·학력 수준 내에서도 독서가 활발할수록
 문해력이 높다는 것을 시사한다.
 
-이 분석에서 가장 견고하게 지지되는 행동 변수다.
         """)
 
     with col_r:

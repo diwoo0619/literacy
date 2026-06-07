@@ -84,11 +84,11 @@ if category == "분석1 : 세대·학력별 문해력 수준":
 elif category == "분석2 : 연령대별 독서시간과 문해력 수준의 상관관계":
     chart_options = {
         "차트 7 — 독서시간 ↔ 문해력": "chart4",
-        "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+        "차트 8 — 전략B: 독서 vs 미디어 트레이드오프": "chart7",
     }
 elif category == "분석3 : 연령대별 미디어 매체 이용과 문해력 수준의 비교":
     chart_options = {
-        "차트 5 — OTT 이용 ↔ 문해력": "chart5",
+        "차트 5 — 미디어 이용 ↔ 문해력": "chart5",
         "차트 6 — 디지털 네이티브 역설": "chart8",
     }
 else:  # "PIAAC 분석" 선택 시

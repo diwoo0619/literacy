@@ -785,7 +785,7 @@ def render_chart_regression():
     }
     df_coef = pd.DataFrame(coef_data)
     
-    )
+    
     df_coef["CI_low"]  = df_coef["계수"] - 1.96 * df_coef["SE"]
     df_coef["CI_high"] = df_coef["계수"] + 1.96 * df_coef["SE"]
 

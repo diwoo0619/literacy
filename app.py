@@ -64,16 +64,16 @@ st.divider()
 # ── 사이드바 ────────────────────────────────────────────────────
 st.sidebar.title("📊 차트 선택")
 chart_options = {
-    "전체 보기":                              "all",
-    "차트 1 — 기초학력 미달률 추이":           "chart1",
-    "차트 2 — 코로나 전후 t-test":            "chart2",
-    "차트 3 — 전략A: 청년층 Gap 변화":        "chart6",
-    "차트 4 — 세대별 문해력 분포":             "chart_box",
-    "차트 5 — OTT 이용 ↔ 문해력":            "chart5",
-    "차트 6 — 디지털 네이티브 역설":           "chart8",
-    "차트 7 — 독서시간 ↔ 문해력":             "chart4",
-    "차트 8 — PIAAC 다중회귀분석 (보완 분석)": "chart_regression",  # ← 편상관 대체
-    "차트 9 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+    "전체 보기":                               "all",
+    "차트 1 — 기초학력 미달률 추이":            "chart1",
+    "차트 2 — 코로나 전후 t-test":             "chart2",
+    "차트 3 — 전략A: 청년층 Gap 변화":         "chart6",
+    "차트 4 — 세대별 문해력 분포":              "chart_box",
+    "차트 5 — OTT 이용 ↔ 문해력":             "chart5",
+    "차트 6 — 디지털 네이티브 역설":            "chart8",
+    "차트 7 — 독서시간 ↔ 문해력":              "chart4",
+    "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+    "차트 9 — PIAAC 다중회귀분석 (보완 분석)":  "chart_regression",
 }
 selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
 mode = chart_options[selected]
@@ -533,9 +533,9 @@ def render_chart4():
 # 차트 8 — PIAAC 다중회귀 (편상관 대체)
 # ════════════════════════════════════════════════
 def render_chart_regression():
-    st.subheader("📊 차트 8 — PIAAC 개인단위 다중회귀분석: 연령·학력 통제 후 독서·ICT와 문해력")
+    st.subheader("📊 차트 9 — PIAAC 개인단위 다중회귀분석: 연령·학력 통제 후 독서·ICT와 문해력")
     st.markdown("""
-    기존 집계 수준 분석(차트 5~7)의 한계를 보완합니다.
+    기존 집계 수준 분석(차트 5~8)의 한계를 보완합니다.
     **PIAAC 2023 한국 개인 단위 마이크로데이터(n≈6,000)**를 활용해
     연령·학력·성별을 통제한 후 독서활동과 ICT 이용이
     문해력과 갖는 **독립적 관련성**을 검증합니다.
@@ -718,7 +718,7 @@ PIAAC 2023 한국 개인 단위 데이터를 활용한 다중회귀분석 결과
 # 차트 9 — 전략B: 트레이드오프
 # ════════════════════════════════════════════════
 def render_chart7():
-    st.subheader("📊 차트 9 — 전략B: 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
+    st.subheader("📊 차트 8 — 전략B: 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
     st.markdown("""
     **독서시간(감소)과 OTT 이용시간(증가)** 의 교차 패턴을 통해
     '미디어 대체' 현상과 문해력의 관계를 확인합니다.
@@ -786,15 +786,15 @@ def render_chart7():
 # 라우팅
 # ════════════════════════════════════════════════
 if mode == "all":
-    render_chart1();          st.divider()
-    render_chart2();          st.divider()
-    render_chart6();          st.divider()
-    render_chart_box();       st.divider()
-    render_chart5();          st.divider()
-    render_chart8();          st.divider()
-    render_chart4();          st.divider()
-    render_chart_regression(); st.divider()   # 차트 8 (편상관 대체)
-    render_chart7()                            # 차트 9
+    render_chart1();           st.divider()
+    render_chart2();           st.divider()
+    render_chart6();           st.divider()
+    render_chart_box();        st.divider()
+    render_chart5();           st.divider()
+    render_chart8();           st.divider()
+    render_chart4();           st.divider()
+    render_chart7();           st.divider()   # 차트 8 트레이드오프
+    render_chart_regression()                 # 차트 9 다중회귀 (마지막)
 elif mode == "chart1":            render_chart1()
 elif mode == "chart2":            render_chart2()
 elif mode == "chart4":            render_chart4()

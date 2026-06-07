@@ -362,7 +362,7 @@ def render_chart_box():
 # 차트 5 — OTT vs 문해력
 # ════════════════════════════════════════════════
 def render_chart5():
-    st.subheader("📊 차트 5 — 연령대별 OTT 이용시간 vs 문해력 수준4 (2023)")
+    st.subheader("📊 차트 5 — 연령대별 미디어 이용시간 vs 문해력 수준4 (2023)")
     sql_media = """
         SELECT m.age_group_id, a.age_group_label,
                AVG(m.OTT_주간총이용시간_분) AS avg_ott_min,
@@ -384,13 +384,13 @@ def render_chart5():
     fig, ax1 = plt.subplots(figsize=(12, 5))
     ax2 = ax1.twinx()
     x = np.arange(len(df))
-    bars = ax1.bar(x, df['avg_ott_min'], color=AMBER, alpha=0.75, label='OTT 주간 이용시간(분)', width=0.4)
+    bars = ax1.bar(x, df['avg_ott_min'], color=AMBER, alpha=0.75, label='미디어 주간 이용시간(분)', width=0.4)
     for bar, val in zip(bars, df['avg_ott_min']):
         ax1.text(bar.get_x()+bar.get_width()/2, bar.get_height()+1, f'{val:.0f}분', ha='center', fontsize=9, color=AMBER)
     ax2.plot(x, df['level4_pct'], marker='s', color=BLUE, linewidth=2.2, markersize=7, label='수준4 비율(%)')
     for xi, yi in zip(x, df['level4_pct']):
         ax2.annotate(f'{yi:.1f}%', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9, color=BLUE)
-    ax1.set_xlabel('연령대'); ax1.set_ylabel('OTT 주간 평균 이용시간 (분)', color=AMBER)
+    ax1.set_xlabel('연령대'); ax1.set_ylabel('미디어 주간 평균 이용시간 (분)', color=AMBER)
     ax2.set_ylabel('수준4 비율 (%)', color=BLUE)
     ax1.set_xticks(x); ax1.set_xticklabels(df['age_group_label'], rotation=15)
     ax1.set_ylim(0, max(df['avg_ott_min'])*1.4); ax2.set_ylim(0, 115)
@@ -398,9 +398,9 @@ def render_chart5():
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1+lines2, labels1+labels2, loc='upper right')
-    ax1.set_title('연령대별 OTT 주간 이용시간 vs 문해력 수준4 비율', fontsize=13, fontweight='bold')
+    ax1.set_title('연령대별 미디어 주간 이용시간 vs 문해력 수준4 비율', fontsize=13, fontweight='bold')
     ax1.grid(axis='y', alpha=0.3)
-    fig.text(0.5, -0.03, f'OTT vs 문해력: r={r_ott:.3f}  |  SNS vs 문해력: r={r_sns:.3f}  (n=5, 연령대 집계값)',
+    fig.text(0.5, -0.03, f'미디어 vs 문해력: r={r_ott:.3f}  |  SNS vs 문해력: r={r_sns:.3f}  (n=5, 연령대 집계값)',
              ha='center', fontsize=10, color=GRAY)
     plt.tight_layout()
     st.pyplot(fig); plt.close()
@@ -408,11 +408,10 @@ def render_chart5():
     st.warning("⚠️ 연령대 집계값 간 비교입니다. 개인 단위 데이터가 아니므로 생태학적 오류 가능성을 명시합니다.")
     st.info(f"""
 💡 **인사이트**
-- OTT 이용시간이 가장 많은 18~29세(주간 221분)에서 문해력 수준4 비율도 가장 높아(97.3%), "OTT가 문해력을 낮춘다"는 단순 가설에 의문을 제기합니다.
-- 이는 연령 효과(젊을수록 교육 수준 높고 OTT도 많이 이용)가 미디어 효과보다 크게 작용하는 결과로 해석됩니다.
-- OTT vs 문해력 상관(r={r_ott:.3f})은 양의 방향으로, 미디어 이용과 문해력의 관계는 단순하지 않음을 보여줍니다.
+- 미디어 이용시간이 가장 많은 18~29세(주간 221분)에서 문해력 수준4 비율도 가장 높아(97.3%), "미디어가 문해력을 낮춘다"는 단순 가설에 의문을 제기합니다.
+- 이는 연령 효과(젊을수록 교육 수준 높고 미디어도 많이 이용)가 미디어 효과보다 크게 작용하는 결과로 해석됩니다.
+- 미디어 vs 문해력 상관(r={r_ott:.3f})은 양의 방향으로, 미디어 이용과 문해력의 관계는 단순하지 않음을 보여줍니다.
 """)
-
 
 # ════════════════════════════════════════════════
 # 차트 6 — 디지털 네이티브 역설

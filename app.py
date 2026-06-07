@@ -65,7 +65,7 @@ chart_options = {
     "차트 6 — 디지털 네이티브 역설":            "chart8",
     "차트 7 — 독서시간 ↔ 문해력":              "chart4",
     "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
-    "차트 9 — PIAAC 다중회귀분석 (보완 분석)":  "chart_regression",
+    "차트 9 — PIAAC 다중회귀분석 ":  "chart_regression",
 }
 selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
 mode = chart_options[selected]

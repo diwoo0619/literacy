@@ -419,7 +419,7 @@ def render_chart5():
 def render_chart8():
     st.subheader("📊 차트 6 — 디지털 네이티브 역설")
     st.markdown("""
-    **"OTT·SNS를 많이 볼수록 문해력이 낮다"는 가설이 맞는가?**
+    **"미디어·SNS를 많이 볼수록 문해력이 낮다"는 가설이 맞는가?**
     데이터가 보여주는 반전을 확인합니다.
     """)
     sql_media = """
@@ -442,17 +442,17 @@ def render_chart8():
     x = np.arange(len(df))
 
     ax1 = axes[0]; ax2 = ax1.twinx()
-    ax1.bar(x, df['ott_usage_pct'], color=AMBER, alpha=0.7, label='OTT 이용률(%)', width=0.5)
+    ax1.bar(x, df['ott_usage_pct'], color=AMBER, alpha=0.7, label='미디어 이용률(%)', width=0.5)
     ax2.plot(x, df['level4_pct'], marker='o', color=BLUE, linewidth=2.5, markersize=8, label='문해력 수준4(%)', zorder=3)
     for i, (o, l) in enumerate(zip(df['ott_usage_pct'], df['level4_pct'])):
         ax1.text(i, o+0.8, f'{o:.1f}%', ha='center', fontsize=8, color=AMBER)
         ax2.text(i, l+1.2, f'{l:.1f}%', ha='center', fontsize=8, color=BLUE, fontweight='bold')
-    ax1.set_xlabel('연령대'); ax1.set_ylabel('OTT 이용률 (%)', color=AMBER)
+    ax1.set_xlabel('연령대'); ax1.set_ylabel('미디어 이용률 (%)', color=AMBER)
     ax2.set_ylabel('문해력 수준4 비율 (%)', color=BLUE)
     ax1.set_xticks(x); ax1.set_xticklabels(df['age_group_label'])
     ax1.set_ylim(0, 120); ax2.set_ylim(0, 120)
     ax1.tick_params(axis='y', colors=AMBER); ax2.tick_params(axis='y', colors=BLUE)
-    ax1.set_title('OTT 이용률이 높은 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
+    ax1.set_title('미디어 이용률이 높은 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
     lines1, l1 = ax1.get_legend_handles_labels(); lines2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1+lines2, l1+l2, loc='lower left', fontsize=9)
     ax1.grid(axis='y', alpha=0.3)
@@ -469,33 +469,7 @@ def render_chart8():
     ax4.set_ylabel('문해력 수준4 비율 (%)', color=CORAL)
     ax3.set_xticks(x); ax3.set_xticklabels(df['age_group_label'])
     ax3.set_ylim(0, 120); ax4.set_ylim(0, 120)
-    ax3.tick_params(axis='y', colors=TEAL); ax4.tick_params(axis='y', colors=CORAL)
-    ax3.set_title('SNS를 많이 쓰는 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
-    lines3, l3 = ax3.get_legend_handles_labels(); lines4, l4 = ax4.get_legend_handles_labels()
-    ax3.legend(lines3+lines4, l3+l4, loc='lower left', fontsize=9)
-    ax3.grid(axis='y', alpha=0.3)
-    plt.suptitle('디지털 네이티브 역설 — OTT·SNS 이용이 높은 세대에서 문해력도 높게 나타나는 이유는?',
-                 fontsize=12, fontweight='bold', y=1.02)
-    plt.tight_layout()
-    st.pyplot(fig); plt.close()
-    show_sql(sql_media)
-    st.error("""
-🔄 **역설처럼 보이는 이유**
-OTT·SNS 이용률이 가장 높은 18~29세(OTT 99.8%, SNS 96.6%)에서 문해력 수준4 비율도 97.3%로 가장 높습니다.
-이것만 보면 "미디어를 많이 쓸수록 문해력이 높다"는 잘못된 결론에 도달할 수 있습니다.
-    """)
-    st.info("""
-💡 **역설의 진짜 이유 — 연령 효과**
-이 패턴은 미디어가 문해력을 높이기 때문이 아닙니다.
-젊을수록 ① 교육 수준이 높고 ② 디지털 기기 이용도 많은 구조적 특성 때문입니다.
-즉 **연령 변수 하나가 문해력과 미디어 이용 모두를 동시에 설명**하고 있어서,
-둘 사이에 직접적 인과관계가 있는 것처럼 보이는 허위 상관(spurious correlation)입니다.
-    """)
-    st.warning("""
-⚠️ **분석의 한계 명시**
-개인 단위 데이터가 아닌 연령대 집계값 비교이므로, 이 결과로 개인 수준의 인과관계를 주장할 수 없습니다.
-"미디어가 문해력에 미치는 순수 효과"를 측정하려면 학력·연령을 통제한 개인 단위 회귀분석이 필요합니다.
-    """)
+    ax3.tick_params(axis='y', colors=TEAL); ax4.tick_params(axis='y', colors
 
 
 # ════════════════════════════════════════════════

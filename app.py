@@ -41,10 +41,6 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 한국 문해력 저하 현상 원인 분석")
-st.markdown("---") # 깔끔한 구분선으로 본문과 분리
-
-# 2. 데이터베이스 연결 설정
 DB_FILE = "경영정보처리론2조.db"
 if not os.path.exists(DB_FILE):
     st.error(f"⚠️ 데이터베이스 파일({DB_FILE})이 없습니다. 같은 폴더에 파일을 넣어주세요.")
@@ -56,52 +52,32 @@ def get_conn():
 
 conn = get_conn()
 
+# ── 헤더 ────────────────────────────────────────────────────────
+st.title("📚 한국 문해력 저하 원인 분석")
+st.markdown("""
+**독서량 감소, OTT·SNS 미디어 이용 증가, 코로나19 대면 소통 단절**이 한국인의 문해력에 미치는 영향을
+세대·학력별로 비교·분석합니다. 데이터 출처: 교육부 학업성취도평가, 국가평생교육진흥원 성인문해능력조사,
+문화체육관광부 국민독서실태조사, KISDI 미디어패널조사.
+""")
+st.divider()
 
 # ── 사이드바 ────────────────────────────────────────────────────
-import streamlit as st
+st.sidebar.title("📊 차트 선택")
+chart_options = {
+    "전체 보기":                               "all",
+    "차트 1 — 기초학력 미달률 추이":            "chart1",
+    "차트 2 — 코로나 전후 t-test":             "chart2",
+    "차트 3 — 세대별 문해력 분포":              "chart_box",
+    "차트 4 — 전략A: 청년층 Gap 변화":         "chart6",
+    "차트 5 — OTT 이용 ↔ 문해력":             "chart5",
+    "차트 6 — 디지털 네이티브 역설":            "chart8",
+    "차트 7 — 독서시간 ↔ 문해력":              "chart4",
+    "차트 8 — 전략B: 독서 vs OTT 트레이드오프": "chart7",
+    "차트 9 — PIAAC 다중회귀분석 (보완 분석)":  "chart_regression",
+}
+selected = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
+mode = chart_options[selected]
 
-st.sidebar.title("📊 분석 카테고리 선택")
-
-# 1. 대분류(분석 카테고리) 선택
-category = st.sidebar.selectbox(
-    "분석 주제를 선택하세요",
-    [
-        "분석1 : 세대·학력별 문해력 수준",
-        "분석2 : 연령대별 독서시간과 문해력 수준의 상관관계",
-        "분석3 : 연령대별 미디어 매체 이용과 문해력 수준의 비교",
-        "PIAAC 분석"
-    ]
-)
-
-# 2. 대분류 선택에 따른 소분류(차트) 매핑 정보 정의
-if category == "분석1 : 세대·학력별 문해력 수준":
-    chart_options = {
-        "차트 1 — 기초학력 미달률 추이": "chart1",
-        "차트 2 — 코로나 전후 t-test": "chart2",
-        "차트 3 — 전략A: 청년층 Gap 변화": "chart6",
-        "차트 4 — 세대별 문해력 분포": "chart_box",
-    }
-elif category == "분석2 : 연령대별 독서시간과 문해력 수준의 상관관계":
-    chart_options = {
-        "차트 7 — 독서시간 ↔ 문해력": "chart4",
-        "차트 8 — 전략B: 독서 vs 미디어 트레이드오프": "chart7",
-    }
-elif category == "분석3 : 연령대별 미디어 매체 이용과 문해력 수준의 비교":
-    chart_options = {
-        "차트 5 — 미디어 이용 ↔ 문해력": "chart5",
-        "차트 6 — 디지털 네이티브 역설": "chart8",
-    }
-else:  # "PIAAC 분석" 선택 시
-    chart_options = {
-        "차트 9 — PIAAC 다중회귀분석": "chart_regression"
-    }
-
-# 3. 소분류 라디오 버튼 렌더링
-selected_chart = st.sidebar.radio("보고 싶은 차트를 선택하세요", list(chart_options.keys()))
-mode = chart_options[selected_chart]
-
-# --- 이후 본문 영역 예시 ---
-# st.write(f"현재 선택된 차트 모드: {mode}")
 def show_sql(sql):
     with st.expander("🔍 사용한 SQL 보기"):
         st.code(sql, language="sql")
@@ -213,7 +189,7 @@ def render_chart2():
 # 차트 3 — 전략A: Gap 변화
 # ════════════════════════════════════════════════
 def render_chart6():
-    st.subheader("📊 차트 3 — 전략A: 전체 평균 대비 연령대별 문해력 우위(Gap) 변화")
+    st.subheader("📊 차트 4 — 전략A: 전체 평균 대비 연령대별 문해력 우위(Gap) 변화")
     st.markdown("""
     절대값이 아닌 **'전체 평균 대비 각 연령대의 격차(Gap)'** 를 봅니다.
     절대 점수는 올라도 상대적 우위가 좁혀지고 있다면 문해력 하락의 신호입니다.
@@ -276,6 +252,7 @@ def render_chart6():
     ).round(1)
     st.dataframe(pivot_gap.style.format("{:+.1f}"), use_container_width=True)
     show_sql(sql)
+    st.warning("⚠️ 연도별 표본 설계와 판정 기준이 달라 절대값 직접 비교는 제한됩니다. Gap의 추세 방향만 해석하세요.")
     gap_2017 = float(youth[youth['survey_year']==2017]['gap'])
     gap_2023 = float(youth[youth['survey_year']==2023]['gap'])
     st.info(f"""
@@ -290,7 +267,7 @@ def render_chart6():
 # 차트 4 — 세대별 문해력 분포
 # ════════════════════════════════════════════════
 def render_chart_box():
-    st.subheader("📊 차트 4 — 세대별 문해력 점수 분포 (PIAAC 2023 한국)")
+    st.subheader("📊 차트 3 — 세대별 문해력 점수 분포 (PIAAC 2023 한국)")
     st.markdown("""
     PIAAC 개인 단위 데이터(n=6,198)로 세대별 문해력 점수 분포를 확인합니다.
     평균값 차이뿐 아니라 **분포의 형태와 격차**를 함께 볼 수 있습니다.
@@ -354,18 +331,18 @@ def render_chart_box():
     show_sql(sql)
     st.info("""
 💡 **인사이트**
-- 16-25세(평균 277점)에서 56-65세(평균 213점)로 갈수록 문해력이 뚜렷하게 감소합니다.
+- 16~25세(평균 277점)에서 56~65세(평균 213점)로 갈수록 문해력이 뚜렷하게 감소합니다.
 - 바이올린 플롯에서 젊은 층은 분포가 좁고 높은 편에 집중되는 반면, 고령층은 분포가 넓고 낮은 점수에 퍼져 있습니다.
 - 세대 간 문해력 격차는 단순 평균 차이(64점)뿐 아니라 분포 형태에서도 뚜렷하게 나타납니다.
 """)
-
+    st.warning("⚠️ 연령 효과는 세대 차이(교육 환경, 디지털 노출 등) 복합 요인이 반영된 결과로, 단순히 '나이가 들면 문해력이 낮아진다'는 인과 해석은 제한됩니다.")
 
 
 # ════════════════════════════════════════════════
 # 차트 5 — OTT vs 문해력
 # ════════════════════════════════════════════════
 def render_chart5():
-    st.subheader("📊 차트 5 — 연령대별 미디어 이용시간 vs 문해력 수준4 (2023)")
+    st.subheader("📊 차트 5 — 연령대별 OTT 이용시간 vs 문해력 수준4 (2023)")
     sql_media = """
         SELECT m.age_group_id, a.age_group_label,
                AVG(m.OTT_주간총이용시간_분) AS avg_ott_min,
@@ -387,13 +364,13 @@ def render_chart5():
     fig, ax1 = plt.subplots(figsize=(12, 5))
     ax2 = ax1.twinx()
     x = np.arange(len(df))
-    bars = ax1.bar(x, df['avg_ott_min'], color=AMBER, alpha=0.75, label='미디어 주간 이용시간(분)', width=0.4)
+    bars = ax1.bar(x, df['avg_ott_min'], color=AMBER, alpha=0.75, label='OTT 주간 이용시간(분)', width=0.4)
     for bar, val in zip(bars, df['avg_ott_min']):
         ax1.text(bar.get_x()+bar.get_width()/2, bar.get_height()+1, f'{val:.0f}분', ha='center', fontsize=9, color=AMBER)
     ax2.plot(x, df['level4_pct'], marker='s', color=BLUE, linewidth=2.2, markersize=7, label='수준4 비율(%)')
     for xi, yi in zip(x, df['level4_pct']):
         ax2.annotate(f'{yi:.1f}%', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9, color=BLUE)
-    ax1.set_xlabel('연령대'); ax1.set_ylabel('미디어 주간 평균 이용시간 (분)', color=AMBER)
+    ax1.set_xlabel('연령대'); ax1.set_ylabel('OTT 주간 평균 이용시간 (분)', color=AMBER)
     ax2.set_ylabel('수준4 비율 (%)', color=BLUE)
     ax1.set_xticks(x); ax1.set_xticklabels(df['age_group_label'], rotation=15)
     ax1.set_ylim(0, max(df['avg_ott_min'])*1.4); ax2.set_ylim(0, 115)
@@ -401,19 +378,21 @@ def render_chart5():
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1+lines2, labels1+labels2, loc='upper right')
-    ax1.set_title('연령대별 미디어 주간 이용시간 vs 문해력 수준4 비율', fontsize=13, fontweight='bold')
+    ax1.set_title('연령대별 OTT 주간 이용시간 vs 문해력 수준4 비율', fontsize=13, fontweight='bold')
     ax1.grid(axis='y', alpha=0.3)
-    fig.text(0.5, -0.03, f'미디어 vs 문해력: r={r_ott:.3f}  |  SNS vs 문해력: r={r_sns:.3f}  (n=5, 연령대 집계값)',
+    fig.text(0.5, -0.03, f'OTT vs 문해력: r={r_ott:.3f}  |  SNS vs 문해력: r={r_sns:.3f}  (n=5, 연령대 집계값)',
              ha='center', fontsize=10, color=GRAY)
     plt.tight_layout()
     st.pyplot(fig); plt.close()
     show_sql(sql_media)
+    st.warning("⚠️ 연령대 집계값 간 비교입니다. 개인 단위 데이터가 아니므로 생태학적 오류 가능성을 명시합니다.")
     st.info(f"""
 💡 **인사이트**
-- 미디어 이용시간이 가장 많은 18~29세(주간 221분)에서 문해력 수준4 비율도 가장 높아(97.3%), "미디어가 문해력을 낮춘다"는 단순 가설에 의문을 제기합니다.
-- 이는 연령 효과(젊을수록 교육 수준 높고 미디어도 많이 이용)가 미디어 효과보다 크게 작용하는 결과로 해석됩니다.
-- 미디어 vs 문해력 상관(r={r_ott:.3f})은 양의 방향으로, 미디어 이용과 문해력의 관계는 단순하지 않음을 보여줍니다.
+- OTT 이용시간이 가장 많은 18~29세(주간 221분)에서 문해력 수준4 비율도 가장 높아(97.3%), "OTT가 문해력을 낮춘다"는 단순 가설에 의문을 제기합니다.
+- 이는 연령 효과(젊을수록 교육 수준 높고 OTT도 많이 이용)가 미디어 효과보다 크게 작용하는 결과로 해석됩니다.
+- OTT vs 문해력 상관(r={r_ott:.3f})은 양의 방향으로, 미디어 이용과 문해력의 관계는 단순하지 않음을 보여줍니다.
 """)
+
 
 # ════════════════════════════════════════════════
 # 차트 6 — 디지털 네이티브 역설
@@ -421,7 +400,7 @@ def render_chart5():
 def render_chart8():
     st.subheader("📊 차트 6 — 디지털 네이티브 역설")
     st.markdown("""
-    **"미디어·SNS를 많이 볼수록 문해력이 낮다"는 가설이 맞는가?**
+    **"OTT·SNS를 많이 볼수록 문해력이 낮다"는 가설이 맞는가?**
     데이터가 보여주는 반전을 확인합니다.
     """)
     sql_media = """
@@ -443,26 +422,24 @@ def render_chart8():
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     x = np.arange(len(df))
 
-    # 첫 번째 그래프 (미디어)
     ax1 = axes[0]; ax2 = ax1.twinx()
-    ax1.bar(x, df['ott_usage_pct'], color=AMBER, alpha=0.7, label='미디어 이용률(%)', width=0.5)
+    ax1.bar(x, df['ott_usage_pct'], color=AMBER, alpha=0.7, label='OTT 이용률(%)', width=0.5)
     ax2.plot(x, df['level4_pct'], marker='o', color=BLUE, linewidth=2.5, markersize=8, label='문해력 수준4(%)', zorder=3)
     for i, (o, l) in enumerate(zip(df['ott_usage_pct'], df['level4_pct'])):
         ax1.text(i, o+0.8, f'{o:.1f}%', ha='center', fontsize=8, color=AMBER)
         ax2.text(i, l+1.2, f'{l:.1f}%', ha='center', fontsize=8, color=BLUE, fontweight='bold')
-    ax1.set_xlabel('연령대'); ax1.set_ylabel('미디어 이용률 (%)', color=AMBER)
+    ax1.set_xlabel('연령대'); ax1.set_ylabel('OTT 이용률 (%)', color=AMBER)
     ax2.set_ylabel('문해력 수준4 비율 (%)', color=BLUE)
     ax1.set_xticks(x); ax1.set_xticklabels(df['age_group_label'])
     ax1.set_ylim(0, 120); ax2.set_ylim(0, 120)
     ax1.tick_params(axis='y', colors=AMBER); ax2.tick_params(axis='y', colors=BLUE)
-    ax1.set_title('미디어 이용률이 높은 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
+    ax1.set_title('OTT 이용률이 높은 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
     lines1, l1 = ax1.get_legend_handles_labels(); lines2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1+lines2, l1+l2, loc='lower left', fontsize=9)
     ax1.grid(axis='y', alpha=0.3)
     ax1.annotate('', xy=(4, 30), xytext=(0, 90), arrowprops=dict(arrowstyle='->', color='red', lw=1.5))
     ax1.text(2.0, 60, '두 지표 모두\n같은 방향↓', ha='center', fontsize=9, color='red', alpha=0.8)
 
-    # 두 번째 그래프 (SNS)
     ax3 = axes[1]; ax4 = ax3.twinx()
     ax3.bar(x, df['sns_usage_pct'], color=TEAL, alpha=0.7, label='SNS 이용률(%)', width=0.5)
     ax4.plot(x, df['level4_pct'], marker='s', color=CORAL, linewidth=2.5, markersize=8, label='문해력 수준4(%)', zorder=3)
@@ -473,32 +450,34 @@ def render_chart8():
     ax4.set_ylabel('문해력 수준4 비율 (%)', color=CORAL)
     ax3.set_xticks(x); ax3.set_xticklabels(df['age_group_label'])
     ax3.set_ylim(0, 120); ax4.set_ylim(0, 120)
-    
-    # ⚠️ 에러 원인 해결 구간: 가독성을 위해 두 줄로 분리하고 괄호를 확실히 닫았습니다.
-    ax3.tick_params(axis='y', colors=TEAL)
-    ax4.tick_params(axis='y', colors=CORAL)
-    
+    ax3.tick_params(axis='y', colors=TEAL); ax4.tick_params(axis='y', colors=CORAL)
     ax3.set_title('SNS를 많이 쓰는 세대가\n문해력도 높다?', fontsize=11, fontweight='bold')
     lines3, l3 = ax3.get_legend_handles_labels(); lines4, l4 = ax4.get_legend_handles_labels()
     ax3.legend(lines3+lines4, l3+l4, loc='lower left', fontsize=9)
     ax3.grid(axis='y', alpha=0.3)
-    plt.suptitle('디지털 네이티브 역설 — 미디어·SNS 이용이 높은 세대에서 문해력도 높게 나타나는 이유는?',
+    plt.suptitle('디지털 네이티브 역설 — OTT·SNS 이용이 높은 세대에서 문해력도 높게 나타나는 이유는?',
                  fontsize=12, fontweight='bold', y=1.02)
     plt.tight_layout()
     st.pyplot(fig); plt.close()
     show_sql(sql_media)
     st.error("""
-    🔄 **역설처럼 보이는 이유**
-    미디어·SNS 이용률이 가장 높은 18~29세(미디어 99.8%, SNS 96.6%)에서 문해력 수준4 비율도 97.3%로 가장 높습니다.
-    이것만 보면 "미디어를 많이 쓸수록 문해력이 높다"는 잘못된 결론에 도달할 수 있습니다.
+🔄 **역설처럼 보이는 이유**
+OTT·SNS 이용률이 가장 높은 18~29세(OTT 99.8%, SNS 96.6%)에서 문해력 수준4 비율도 97.3%로 가장 높습니다.
+이것만 보면 "미디어를 많이 쓸수록 문해력이 높다"는 잘못된 결론에 도달할 수 있습니다.
     """)
     st.info("""
-    💡 **역설의 진짜 이유 — 연령 효과**
-    이 패턴은 미디어가 문해력을 높이기 때문이 아닙니다.
-    젊을수록 ① 교육 수준이 높고 ② 디지털 기기 이용도 많은 구조적 특성 때문입니다.
-    즉 **연령 변수 하나가 문해력과 미디어 이용 모두를 동시에 설명**하고 있어서,
-    둘 사이에 직접적 인과관계가 있는 것처럼 보이는 허위 상관(spurious correlation)입니다.
+💡 **역설의 진짜 이유 — 연령 효과**
+이 패턴은 미디어가 문해력을 높이기 때문이 아닙니다.
+젊을수록 ① 교육 수준이 높고 ② 디지털 기기 이용도 많은 구조적 특성 때문입니다.
+즉 **연령 변수 하나가 문해력과 미디어 이용 모두를 동시에 설명**하고 있어서,
+둘 사이에 직접적 인과관계가 있는 것처럼 보이는 허위 상관(spurious correlation)입니다.
     """)
+    st.warning("""
+⚠️ **분석의 한계 명시**
+개인 단위 데이터가 아닌 연령대 집계값 비교이므로, 이 결과로 개인 수준의 인과관계를 주장할 수 없습니다.
+"미디어가 문해력에 미치는 순수 효과"를 측정하려면 학력·연령을 통제한 개인 단위 회귀분석이 필요합니다.
+    """)
+
 
 # ════════════════════════════════════════════════
 # 차트 7 — 독서시간 vs 문해력
@@ -541,6 +520,7 @@ def render_chart4():
     plt.tight_layout()
     st.pyplot(fig); plt.close()
     show_sql(sql)
+    st.warning("⚠️ 연령대 집계값 간 비교입니다. 개인 단위 인과관계가 아닌 집계 수준 상관관계이며, 연령 효과가 혼재합니다.")
     st.info(f"""
 💡 **인사이트**
 - 독서시간이 많은 연령대(18~29세)에서 문해력 수준4 비율도 높게 나타나 양의 상관(r={r_val:.3f})이 확인됩니다.
@@ -550,15 +530,15 @@ def render_chart4():
 
 
 # ════════════════════════════════════════════════
-# 차트 9 — PIAAC 다중회귀 
+# 차트 8 — PIAAC 다중회귀 (편상관 대체)
 # ════════════════════════════════════════════════
 def render_chart_regression():
     st.subheader("📊 차트 9 — PIAAC 개인단위 다중회귀분석: 연령·학력 통제 후 독서·ICT와 문해력")
     st.markdown("""
     기존 집계 수준 분석(차트 5~8)의 한계를 보완합니다.
-    PIAAC 2023 한국 개인 단위 마이크로데이터(n≈6,000)를 활용해
+    **PIAAC 2023 한국 개인 단위 마이크로데이터(n≈6,000)**를 활용해
     연령·학력·성별을 통제한 후 독서활동과 ICT 이용이
-    문해력과 갖는 독립적 관련성을 검증합니다.
+    문해력과 갖는 **독립적 관련성**을 검증합니다.
 
     > 분석 방법: 10개 Plausible Value(PVLIT1~10)를 각각 WLS로 추정한 뒤
     > Rubin's rule로 계수·표준오차를 결합.
@@ -700,6 +680,16 @@ PIAAC의 ICT 이용지수는 OTT·SNS 시청시간이 아니라
 직접 사용하기에는 한계가 있다.
         """)
 
+    # ── 분석 한계 ────────────────────────────────────────────
+    st.divider()
+    st.error("""
+⚠️ **분석의 한계**
+
+본 분석은 2023년 단일 시점 횡단 자료에 기반하므로, 관찰된 연령대 간 차이가
+나이 듦에 따른 변화(연령 효과)인지, 세대 간 성장 환경 차이(코호트 효과)인지를
+분리하기 어렵다. 또한 회귀계수는 통제 후 조건부 연관성을 나타낼 뿐,
+독서활동이나 ICT 이용이 문해력을 높인다는 인과 주장의 근거가 되지 않는다.
+    """)
 
     # ── 최종 결론 ────────────────────────────────────────────
     st.divider()
@@ -710,27 +700,27 @@ PIAAC의 ICT 이용지수는 OTT·SNS 시청시간이 아니라
     """)
     st.markdown("""
 PIAAC 2023 한국 개인 단위 데이터를 활용한 다중회귀분석 결과,
-연령대와 본인 학력은 문해력 점수와 유의미한 관계를 보인다.
+연령대와 본인 학력은 문해력 점수와 강한 관련을 보였다.
 특히 고령층은 학력·성별·독서활동·ICT 이용을 통제한 후에도
 청년층보다 낮은 문해력 점수를 보였으며,
 이는 기존의 연령대별 문해력 격차가 단순한 집계상 착시만은 아님을 보여준다.
 
 연령·학력·성별·ICT 이용 등 다른 요인을 모두 감안하고 나서도,
-독서를 많이 하는 사람일수록 문해력이 높은 경향이 확인됐다.
-다만, ICT 이용지수 역시 양의 관계를 보였기 때문에
+독서를 많이 하는 사람일수록 문해력이 높은 경향이 유의미하게 확인됐다.
+반면 ICT 이용지수 역시 양의 관계를 보였기 때문에,
 디지털 이용 증가가 곧바로 문해력 저하로 이어진다는 단순 가설은 지지되기 어렵다.
-또한 PIAAC의 ICT 지수는 OTT·SNS 이용시간이 아니라 텍스트 기반 디지털 활동을
+다만 PIAAC의 ICT 지수는 OTT·SNS 이용시간이 아니라 텍스트 기반 디지털 활동을
 포함하므로, 미디어 이용 효과로 직접 해석하는 데에는 한계가 있다.
     """)
 
 
 # ════════════════════════════════════════════════
-# 차트 8— 전략B: 트레이드오프
+# 차트 9 — 전략B: 트레이드오프
 # ════════════════════════════════════════════════
 def render_chart7():
-    st.subheader("📊 차트 8 — 전략B: 연령대별 독서시간 vs 미디어 이용시간 트레이드오프")
+    st.subheader("📊 차트 8 — 전략B: 연령대별 독서시간 vs OTT 이용시간 트레이드오프")
     st.markdown("""
-    **독서시간(감소)과 미디어 이용시간(증가)** 의 교차 패턴을 통해
+    **독서시간(감소)과 OTT 이용시간(증가)** 의 교차 패턴을 통해
     '미디어 대체' 현상과 문해력의 관계를 확인합니다.
     """)
     sql_read = "SELECT age_group_id, avg_read_min_total FROM 독서실태조사 ORDER BY age_group_id"
@@ -750,15 +740,15 @@ def render_chart7():
     ax = axes[0]; ax2 = ax.twinx()
     x = np.arange(len(df))
     ax.bar(x-0.2, df['avg_read_min_total'], 0.35, color=BLUE, alpha=0.75, label='독서시간(분)')
-    ax2.bar(x+0.2, df['avg_ott'], 0.35, color=AMBER, alpha=0.75, label='미디어 이용시간(분)')
+    ax2.bar(x+0.2, df['avg_ott'], 0.35, color=AMBER, alpha=0.75, label='OTT 이용시간(분)')
     for i, (r, o) in enumerate(zip(df['avg_read_min_total'], df['avg_ott'])):
         ax.text(i-0.2, r+0.5, f'{r:.0f}', ha='center', fontsize=8, color=BLUE)
         ax2.text(i+0.2, o+1,  f'{o:.0f}', ha='center', fontsize=8, color=AMBER)
     ax.set_xlabel('연령대'); ax.set_ylabel('독서시간 (분/일)', color=BLUE)
-    ax2.set_ylabel('미디어 이용시간 (분/주)', color=AMBER)
+    ax2.set_ylabel('OTT 이용시간 (분/주)', color=AMBER)
     ax.set_xticks(x); ax.set_xticklabels(df['age_group_label'])
     ax.tick_params(axis='y', colors=BLUE); ax2.tick_params(axis='y', colors=AMBER)
-    ax.set_title('연령대별 독서시간 vs 미디어 이용시간', fontsize=11, fontweight='bold')
+    ax.set_title('연령대별 독서시간 vs OTT 이용시간', fontsize=11, fontweight='bold')
     lines1, l1 = ax.get_legend_handles_labels(); lines2, l2 = ax2.get_legend_handles_labels()
     ax.legend(lines1+lines2, l1+l2, loc='upper right', fontsize=9)
     ax.grid(axis='y', alpha=0.3)
@@ -766,7 +756,7 @@ def render_chart7():
     ax3 = axes[1]
     sc = ax3.scatter(df['avg_read_min_total'], df['level4_pct'],
                      c=df['avg_ott'], cmap='YlOrRd_r', s=180, edgecolors='gray', linewidths=0.5, zorder=3)
-    plt.colorbar(sc, ax=ax3, label='미디어 이용시간(분/주)')
+    plt.colorbar(sc, ax=ax3, label='OTT 이용시간(분/주)')
     z = np.polyfit(df['avg_read_min_total'], df['level4_pct'], 1)
     x_line = np.linspace(df['avg_read_min_total'].min(), df['avg_read_min_total'].max(), 100)
     ax3.plot(x_line, np.poly1d(z)(x_line), color=BLUE, linestyle='--', linewidth=1.5, alpha=0.7)
@@ -775,7 +765,7 @@ def render_chart7():
                      textcoords="offset points", xytext=(5, 5), fontsize=8)
     r_val, p_val = stats.pearsonr(df['avg_read_min_total'], df['level4_pct'])
     ax3.set_xlabel('평균 독서시간 (분/일)'); ax3.set_ylabel('문해력 수준4 비율 (%)')
-    ax3.set_title('독서시간 vs 문해력 산점도\n(점 색상=미디어 이용 많을수록 밝은색)', fontsize=11, fontweight='bold')
+    ax3.set_title('독서시간 vs 문해력 산점도\n(점 색상=OTT 이용 많을수록 밝은색)', fontsize=11, fontweight='bold')
     ax3.grid(alpha=0.3)
     ax3.text(0.05, 0.05, f'r={r_val:.3f}  (p={p_val:.3f})',
              transform=ax3.transAxes, fontsize=10, color=BLUE,
@@ -783,12 +773,12 @@ def render_chart7():
     plt.tight_layout()
     st.pyplot(fig); plt.close()
     show_sql(sql_ott)
-  
+    st.warning("⚠️ 독서시간(2023년)과 OTT 이용시간(2023년)은 같은 연도 집계이나, 서로 다른 조사에서 추출한 데이터입니다.")
     st.info(f"""
 💡 **인사이트 (전략 B)**
-- 독서시간이 많은 연령대(18~29세: 36분)에서 미디어 이용시간도 가장 많아(221분/주), 단순한 '독서 대체' 구도가 아님을 보여줍니다.
-- 산점도에서 독서시간↑ → 문해력↑ 의 양의 상관(r={r_val:.3f})이 확인되나, 미디어 이용시간이 많은 집단(밝은색)이 오히려 문해력도 높은 역설적 패턴이 나타납니다.
-- 이는 연령 효과(젊을수록 독서·미디어 모두 많고 교육 수준도 높음)가 미디어 대체 효과를 압도하고 있음을 시사합니다.
+- 독서시간이 많은 연령대(18~29세: 36분)에서 OTT 이용시간도 가장 많아(221분/주), 단순한 '독서 대체' 구도가 아님을 보여줍니다.
+- 산점도에서 독서시간↑ → 문해력↑ 의 양의 상관(r={r_val:.3f})이 확인되나, OTT 이용시간이 많은 집단(밝은색)이 오히려 문해력도 높은 역설적 패턴이 나타납니다.
+- 이는 연령 효과(젊을수록 독서·OTT 모두 많고 교육 수준도 높음)가 미디어 대체 효과를 압도하고 있음을 시사합니다.
 """)
 
 
@@ -798,8 +788,8 @@ def render_chart7():
 if mode == "all":
     render_chart1();           st.divider()
     render_chart2();           st.divider()
-    render_chart6();           st.divider()
     render_chart_box();        st.divider()
+    render_chart6();           st.divider()
     render_chart5();           st.divider()
     render_chart8();           st.divider()
     render_chart4();           st.divider()
